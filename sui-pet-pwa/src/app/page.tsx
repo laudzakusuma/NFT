@@ -24,12 +24,7 @@ import dynamic from 'next/dynamic';
 
 const GameMap = dynamic(() => import('../components/GameMap'), {
   ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-gray-950 text-green-500 font-mono animate-pulse">
-      <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4" />
-      <p className="tracking-widest text-xs">MENGHUBUNGKAN SATELIT...</p>
-    </div>
-  ),
+  loading: () => <div className="text-green-500 font-mono p-4 animate-pulse">MEMUAT PETA...</div>,
 });
 
 const CONFIG = {
@@ -39,6 +34,18 @@ const CONFIG = {
   GPS_TIMEOUT: 15000,
   GPS_MAX_AGE: 5000,
 };
+
+const pageVariants = {
+  initial: { opacity: 0, y: 20, scale: 0.98 },
+  in: { opacity: 1, y: 0, scale: 1 },
+  out: { opacity: 0, y: -20, scale: 0.98 },
+};
+
+const pageTransition = {
+  type: 'tween',
+  ease: 'anticipate',
+  duration: 0.4,
+} as const;
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
@@ -81,6 +88,7 @@ export default function Home() {
     msg: string;
     type: 'success' | 'error' | 'info';
   } | null>(null);
+
   const {
     data: petData,
     isPending: isPetLoading,
@@ -117,7 +125,7 @@ export default function Home() {
   useEffect(() => {
     if (viewMode === 'map' || viewMode === 'ar') {
       if (!navigator.geolocation) {
-        setGpsError('Browser ini tidak mendukung GPS.');
+        setGpsError('Browser tidak mendukung GPS');
         return;
       }
 
@@ -128,9 +136,8 @@ export default function Home() {
           setGpsError(null);
 
           if (!target) {
-            const newT = generateTarget(current.lat, current.lng);
-            setTarget(newT);
-            showToast('🎯 Target Baru Terdeteksi!', 'info');
+            setTarget(generateTarget(current.lat, current.lng));
+            showToast('Target Baru Terdeteksi!', 'info');
           }
 
           if (target) {
@@ -141,7 +148,7 @@ export default function Home() {
         },
         (err) => {
           console.error('GPS Error:', err);
-          setGpsError('Gagal mendapatkan lokasi. Pastikan GPS aktif.');
+          setGpsError('Sinyal GPS Hilang!');
         },
         { enableHighAccuracy: true, maximumAge: CONFIG.GPS_MAX_AGE, timeout: CONFIG.GPS_TIMEOUT },
       );
@@ -227,7 +234,7 @@ export default function Home() {
 
   const handleBuyFood = () => {
     const tx = new Transaction();
-    const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(100000000)]); // 0.1 SUI
+    const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(100000000)]);
     tx.moveCall({
       target: `${PACKAGE_ID}::shop::buy_food`,
       arguments: [tx.object(SHOP_ID), coin],
@@ -267,328 +274,288 @@ export default function Home() {
   };
 
   return (
-    <main className="relative h-screen w-full bg-[#1a1a2e] overflow-hidden text-white font-mono select-none">
+    <main className="relative h-[100dvh] w-full bg-[#1a1a2e] animated-grid-bg overflow-hidden text-white font-mono select-none flex flex-col">
+      <div className="absolute inset-0 crt-overlay z-[1] pointer-events-none" />
       <AnimatePresence>
         {notification && (
           <motion.div
             initial={{ y: -100, opacity: 0 }}
             animate={{ y: 20, opacity: 1 }}
             exit={{ y: -100, opacity: 0 }}
-            className="fixed top-0 left-0 right-0 z-[9999] flex justify-center pointer-events-none"
+            className="fixed top-4 left-0 right-0 z-[9999] flex justify-center pointer-events-none"
           >
-            <div
-              className={`px-6 py-3 rounded-full shadow-2xl border-2 border-white/20 backdrop-blur-md flex items-center gap-3 font-bold
-                ${
-                  notification.type === 'success'
-                    ? 'bg-green-500/90'
-                    : notification.type === 'error'
-                    ? 'bg-red-500/90'
-                    : 'bg-blue-500/90'
-                }`}
-            >
-              {notification.type === 'success' ? (
-                <CheckCircle size={20} />
-              ) : notification.type === 'error' ? (
-                <AlertTriangle size={20} />
-              ) : (
-                <Navigation size={20} />
-              )}
+            <div className={`px-4 py-2 rounded-lg border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,0.5)] flex items-center gap-3 font-bold text-sm md:text-base font-['VT323'] tracking-wider ${notification.type === 'success' ? 'bg-[#2ecc71] text-black' : notification.type === 'error' ? 'bg-[#ff4757] text-white' : 'bg-[#feca57] text-black'}`}>
+              {notification.type === 'success' ? <CheckCircle size={18} /> : notification.type === 'error' ? <AlertTriangle size={18} /> : <Navigation size={18} />}
               {notification.msg}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="absolute inset-0 opacity-20 bg-[url('https://upload.wikimedia.org/wikipedia/commons/b/bd/Google_Maps_Manhattan.png')] bg-cover filter grayscale pointer-events-none" />
-
-      <div className="absolute top-4 left-4 z-50 pointer-events-none">
-        <div className="bg-yellow-400 border-4 border-black px-4 py-2 shadow-[4px_4px_0px_black] -rotate-2 rounded-xl">
-          <h1 className="font-['Press_Start_2P'] text-black text-sm md:text-base tracking-tighter">
+      {gpsError && viewMode !== 'dashboard' && (
+        <div className="fixed top-20 left-0 right-0 z-[9990] flex justify-center pointer-events-none">
+          <div className="bg-red-600 border-2 border-white text-white px-4 py-1 rounded shadow-lg animate-pulse text-xs font-bold font-['Press_Start_2P']">
+            ⚠️ {gpsError}
+          </div>
+        </div>
+      )}
+      <div className="absolute top-0 left-0 right-0 p-4 z-[100] flex justify-between items-start pointer-events-none">
+        <div className="bg-[#feca57] border-2 border-black px-3 py-1 shadow-[2px_2px_0px_black] -rotate-2 rounded-md pointer-events-auto hover:rotate-0 transition-transform">
+          <h1 className="font-['Press_Start_2P'] text-black text-[10px] md:text-xs tracking-tighter">
             SUI<span className="text-white text-stroke-sm">GO</span>
           </h1>
         </div>
-      </div>
-
-      <div className="absolute top-4 right-4 z-50">
-        <ConnectButton />
-      </div>
-
-      {viewMode === 'dashboard' && (
-        <div className="relative z-10 h-full flex flex-col items-center justify-center p-4">
-          <AnimatePresence mode="wait">
-            {!account || (account && !hasPet) ? (
-              <IntroScene account={account} isPending={isPetLoading} refetch={refetchPet} />
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-md bg-[#f5f6fa] text-black rounded-t-3xl p-6 h-[85vh] flex flex-col justify-between border-4 border-black shadow-[0_-10px_50px_rgba(0,0,0,0.7)]"
-              >
-                <div className="text-center mt-2">
-                  <h1 className="text-5xl font-bold uppercase font-['VT323'] tracking-widest text-gray-800 drop-shadow-sm">
-                    {fields.name}
-                  </h1>
-                  <div className="flex justify-center gap-3 mt-2 font-mono text-xs font-bold tracking-widest">
-                    <span className="bg-yellow-400 px-3 py-1 border-2 border-black rounded shadow-sm">
-                      LVL {fields.level}
-                    </span>
-                    <span
-                      className={`px-3 py-1 border-2 border-black rounded text-white shadow-sm ${
-                        fields.hunger < 30 ? 'bg-red-500 animate-pulse' : 'bg-green-500'
-                      }`}
-                    >
-                      {fields.hunger < 30 ? 'STARVING' : 'FULL'}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex-1 flex items-center justify-center relative">
-                  <div className="absolute top-10 right-6 bg-white border-2 border-black px-4 py-2 rounded-xl rounded-bl-none animate-bounce shadow-md z-10">
-                    <p className="text-xs font-bold">
-                      {petAction === 'eating'
-                        ? 'NYAM NYAM! 🍗'
-                        : fields.hunger < 30
-                        ? 'LAPAR...'
-                        : fields.happiness < 30
-                        ? 'BOSAN...'
-                        : 'AYO JALAN!'}
-                    </p>
-                  </div>
-
-                  <motion.div
-                    animate={
-                      petAction === 'happy'
-                        ? { y: [0, -40, 0], rotate: [0, 5, -5, 0] }
-                        : petAction === 'eating'
-                        ? { scale: [1, 1.2, 1] }
-                        : { y: [0, -10, 0] }
-                    }
-                    transition={{
-                      repeat: Infinity,
-                      duration: petAction === 'idle' ? 2 : 0.5,
-                    }}
-                    className="scale-[3] filter drop-shadow-xl"
-                  >
-                    <div className="ghost-body">
-                      <div className="ghost-face" />
-                      <div className="ghost-skirt" />
-                    </div>
-                  </motion.div>
-                </div>
-                <div className="space-y-3 mb-6 bg-white p-4 rounded-2xl border-2 border-gray-200 shadow-inner">
-                  <StatusBar
-                    label="HUNGER"
-                    value={fields.hunger || 0}
-                    color="bg-orange-500"
-                    icon={<Utensils size={14} />}
-                  />
-                  <StatusBar
-                    label="HAPPY"
-                    value={fields.happiness || 0}
-                    color="bg-pink-500"
-                    icon={<Heart size={14} />}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <PixelButton label="MAIN" color="bg-blue-400" icon={<Gamepad2 />} onClick={handlePlay} />
-                  <PixelButton
-                    label="HUNTING"
-                    color="bg-green-500"
-                    icon={<MapIcon />}
-                    onClick={() => setViewMode('map')}
-                  />
-                  <PixelButton
-                    label="BELI MAKAN"
-                    color="bg-yellow-400"
-                    icon={<ShoppingBag />}
-                    onClick={handleBuyFood}
-                  />
-                  <PixelButton
-                    label="TAS"
-                    color="bg-purple-400"
-                    icon={<Utensils />}
-                    onClick={() => setShowInventory(true)}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div className="pointer-events-auto scale-90 origin-top-right btn-pixel bg-white text-black shadow-none border-2 border-black rounded-lg">
+           <ConnectButton className="!bg-transparent !text-black !font-['VT323'] !font-bold" />
         </div>
-      )}
-
-      {viewMode === 'map' && (
-        <div className="absolute inset-0 bg-gray-900 z-40 flex flex-col">
-          <div className="flex-1 relative border-b-4 border-black bg-black">
-            {gps ? (
-              <GameMap userPos={gps} targetPos={target} distance={distance} />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-green-400 animate-pulse font-mono bg-black">
-                <div className="text-4xl mb-2">🛰️</div>
-                <div>MENCARI SINYAL GPS.</div>
-                <div className="text-xs text-gray-500 mt-2">Pastikan Izin Lokasi Aktif</div>
-              </div>
-            )}
-            {gpsError && (
-              <div className="absolute top-16 left-4 right-4 z-[1001] flex justify-center pointer-events-none">
-                <div className="bg-red-600/95 text-white text-xs md:text-sm px-4 py-2 rounded-full border-2 border-black shadow-lg flex items-center gap-2 pointer-events-auto">
-                  <AlertTriangle size={14} />
-                  <span>{gpsError}</span>
-                </div>
-              </div>
-            )}
-            <div className="absolute top-24 left-4 right-4 z-[1000] flex flex-col items-center pointer-events-none gap-2">
-              <div className="bg-black/90 border-2 border-green-500 px-6 py-3 rounded-2xl text-center shadow-lg backdrop-blur-md w-full max-w-xs">
-                <p className="text-[10px] text-green-400 font-bold tracking-widest mb-1">JARAK KE TARGET</p>
-                {distance ? (
-                  <h2 className="text-4xl font-mono font-bold text-white">
-                    {distance.toFixed(0)}
-                    <span className="text-sm text-gray-400">m</span>
-                  </h2>
-                ) : (
-                  <h2 className="text-xl font-mono text-yellow-400">---</h2>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={rerollTarget}
-              className="absolute top-24 right-4 z-[1000] bg-white text-black p-3 rounded-full border-2 border-black shadow-xl active:scale-90"
-              title="Cari Target Lain"
+      </div>
+      <div className="flex-1 relative w-full h-full z-10">
+        <AnimatePresence mode="wait">
+          {viewMode === 'dashboard' && (
+            <motion.div
+              key="dashboard"
+              initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}
+              className="relative h-full flex flex-col items-center justify-center p-4"
             >
-              <RefreshCw size={20} />
-            </button>
-          </div>
-          <div className="h-[25vh] bg-[#f5f6fa] p-6 flex flex-col justify-between items-center rounded-t-3xl border-t-4 border-black shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-50 relative text-black">
-            <div className="text-center w-full">
-              {!canClaim ? (
-                <div className="space-y-2">
-                  <p className="text-yellow-600 font-bold animate-pulse text-lg">⚠️ TARGET JAUH</p>
-                  <p className="text-sm text-gray-500">Jalan mendekati ikon 🎁 di peta.</p>
-                </div>
+               <AnimatePresence mode="wait">
+              {!account || (account && !hasPet) ? (
+                <IntroScene account={account} isPending={isPetLoading} refetch={refetchPet} />
               ) : (
-                <div className="space-y-4 w-full">
-                  <p className="text-green-600 font-bold text-xl animate-bounce">TARGET DALAM JANGKAUAN!</p>
-                  <button
-                    onClick={() => setViewMode('ar')}
-                    className="bg-red-600 text-white w-full px-8 py-4 rounded-xl border-4 border-black font-bold text-xl shadow-lg active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 hover:bg-red-700"
-                  >
-                    <Camera /> BUKA KAMERA
-                  </button>
-                </div>
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", bounce: 0.4 }}
+                  className="w-full max-w-md pixel-card p-5 h-[80vh] flex flex-col justify-between relative z-20"
+                >
+                  <div className="flex justify-between items-end border-b-2 border-dashed border-gray-300 pb-2 text-black">
+                    <div>
+                      <h1 className="text-6xl font-bold uppercase font-['VT323'] leading-none text-white text-stroke-md tracking-widest">
+                        {fields.name}
+                      </h1>
+                      <span className="text-xs font-bold text-gray-500 font-['Press_Start_2P'] mt-1 block">LVL {fields.level}</span>
+                    </div>
+                    <div className={`px-2 py-1 border-2 border-black text-[10px] font-bold ${fields.hunger < 30 ? 'bg-red-500 text-white animate-pulse' : 'bg-green-400 text-black'}`}>
+                      {fields.hunger < 30 ? '! LAPAR' : 'KENYANG'}
+                    </div>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center relative my-4 bg-gray-50 rounded-lg border-2 border-gray-200 inner-shadow overflow-hidden">
+                     <div className="absolute inset-0 opacity-10 animated-grid-bg bg-blue-500"></div>
+                    <motion.div 
+                        initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className="absolute top-4 right-4 bg-white border-2 border-black px-3 py-1 rounded-lg rounded-bl-none animate-bounce shadow-sm z-10 text-black"
+                    >
+                      <p className="text-[10px] font-bold font-['Press_Start_2P']">
+                        {petAction === 'eating' ? 'NYAM!' : fields.hunger < 30 ? 'LAPAR..' : fields.happiness < 30 ? 'BOSAN.' : 'HAI!'}
+                      </p>
+                    </motion.div>
+                    <motion.div
+                      animate={
+                        petAction === 'happy' ? { y: [0, -30, 0], rotate: [0, 10, -10, 5, -5, 0], scale: 1.1 }
+                        : petAction === 'eating' ? { scale: [1, 1.2, 0.9, 1.1, 1], rotate: [0, -5, 5, 0] }
+                        : {} 
+                      }
+                      transition={{ duration: 0.6, ease: "easeInOut" }}
+                      className={`scale-[2.5] filter drop-shadow-md relative z-10 ${petAction === 'idle' ? 'ghost-container-animated' : ''}`}
+                    >
+                      <div className="ghost-body"><div className="ghost-face" /><div className="ghost-skirt" /></div>
+                    </motion.div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="bg-gray-100 p-3 rounded-lg border-2 border-gray-300">
+                      <StatusBar label="HP" value={fields.hunger || 0} color="bg-orange-500" icon={<Utensils size={12} />} />
+                      <StatusBar label="JOY" value={fields.happiness || 0} color="bg-pink-500" icon={<Heart size={12} />} />
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                        <PixelButtonSmall color="bg-blue-400" icon={<Gamepad2 size={18} />} onClick={handlePlay} />
+                        <PixelButtonSmall color="bg-yellow-400" icon={<ShoppingBag size={18} />} onClick={handleBuyFood} />
+                        <PixelButtonSmall color="bg-purple-400" icon={<Utensils size={18} />} onClick={() => setShowInventory(true)} />
+                        <PixelButtonSmall color="bg-green-500" icon={<MapIcon size={18} />} onClick={() => setViewMode('map')} />
+                    </div>
+                  </div>
+                </motion.div>
               )}
-            </div>
-            <button
-              onClick={() => setViewMode('dashboard')}
-              className="text-gray-400 font-bold hover:text-red-500 underline decoration-2 text-sm"
-            >
-              KEMBALI KE DASHBOARD
-            </button>
-          </div>
-        </div>
-      )}
+            </AnimatePresence>
+            </motion.div>
+          )}
 
-      {viewMode === 'ar' && (
-        <div className="absolute inset-0 z-50 bg-black">
-          <Webcam
-            audio={false}
-            className="absolute inset-0 w-full h-full object-cover opacity-80"
-            videoConstraints={{ facingMode: 'environment' }}
-            onUserMediaError={(e) => alert('Kamera Error: ' + e)}
-          />
-          <div className="absolute inset-0 p-6 flex flex-col justify-between z-50">
-            <div className="flex justify-between pointer-events-auto">
-              <button
-                onClick={() => setViewMode('map')}
-                className="bg-black/60 p-3 rounded-full text-white border-2 border-white backdrop-blur-md hover:bg-red-600 transition-colors"
-              >
-                <X />
-              </button>
-              <div className="bg-red-600/90 px-4 py-2 rounded-full text-xs font-bold animate-pulse border-2 border-white text-white shadow-lg backdrop-blur-md flex items-center gap-2">
-                <div className="w-2 h-2 bg-white rounded-full animate-ping" /> LIVE FEED
+          {viewMode === 'map' && (
+            <motion.div
+                key="map"
+                initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}
+                className="absolute inset-0 z-40 flex flex-col bg-black/50 backdrop-blur-sm"
+            >
+              <div className="flex-1 relative border-b-4 border-black">
+                {gps ? (
+                  <GameMap userPos={gps} targetPos={target} distance={distance} />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-green-500 font-mono">
+                    <div className="animate-spin text-4xl mb-4">🌍</div>
+                    <p>MENCARI SINYAL...</p>
+                  </div>
+                )}
+
+                <motion.div 
+                    initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+                    className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none w-full max-w-[200px]"
+                >
+                  <div className="bg-black/90 backdrop-blur-sm border-2 border-[#feca57] px-4 py-2 rounded-full shadow-lg flex flex-col items-center">
+                    <span className="text-[10px] text-[#feca57] font-bold tracking-widest uppercase mb-[-2px]">Jarak Target</span>
+                    <div className="font-['VT323'] text-3xl text-white leading-none">
+                      {distance ? distance.toFixed(0) : '--'}<span className="text-sm text-gray-400 ml-1">m</span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 180 }} whileTap={{ scale: 0.9 }}
+                  onClick={rerollTarget}
+                  className="absolute top-24 right-4 z-[1000] bg-white text-black p-3 rounded-xl border-2 border-black shadow-[4px_4px_0_black] active:shadow-none"
+                >
+                  <RefreshCw size={20} />
+                </motion.button>
               </div>
-            </div>
-            <div className="flex-1 flex items-center justify-center pointer-events-auto perspective-1000">
-              <motion.div
-                initial={{ scale: 0, rotateY: 180, opacity: 0 }}
-                animate={{ scale: 1, rotateY: 0, opacity: 1 }}
-                transition={{ type: 'spring', bounce: 0.6, duration: 0.8 }}
-                className="cursor-pointer relative group"
-                onClick={handleCatch}
+
+              <motion.div 
+                 initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 20 }}
+                 className="bg-[#f5f6fa] border-t-4 border-black p-4 z-50 relative shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
               >
-                <div className="ghost-body scale-[3.5] filter drop-shadow-[0_0_30px_rgba(255,255,255,0.8)] border-4 border-black">
-                  <div className="ghost-face" />
-                  <div className="ghost-skirt" />
+                <div className="flex justify-between items-center mb-4 px-2">
+                  <div>
+                      <h3 className="font-['VT323'] text-2xl text-black font-bold leading-none">RADAR</h3>
+                      <p className="text-xs text-gray-500 font-sans">Cari kado 🎁</p>
+                  </div>
+                  <div className={`px-3 py-1 rounded border-2 border-black text-xs font-bold ${canClaim ? 'bg-green-400 text-black animate-pulse' : 'bg-gray-300 text-gray-500'}`}>
+                      {canClaim ? 'SIAP TANGKAP!' : 'TARGET JAUH'}
+                  </div>
                 </div>
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/70 text-white px-4 py-1 rounded-full border-2 border-white text-xs font-bold tracking-widest">
-                  TAP UNTUK MENANGKAP
+
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}
+                    onClick={() => setViewMode('dashboard')}
+                    className="flex-1 bg-white text-black py-3 rounded-lg border-2 border-black font-bold text-sm shadow-[0_4px_0_#ccc] active:shadow-none transition-all hover-shake"
+                  >
+                    BATAL
+                  </motion.button>
+                  <motion.button
+                    disabled={!canClaim}
+                    whileHover={canClaim ? { scale: 1.02 } : {}} whileTap={canClaim ? { scale: 0.95 } : {}}
+                    onClick={() => setViewMode('ar')}
+                    className={`flex-[2] py-3 rounded-lg border-2 border-black font-bold text-sm shadow-[0_4px_0_black] active:shadow-none transition-all flex items-center justify-center gap-2 hover-shake
+                      ${canClaim ? 'bg-[#ff4757] text-white hover:bg-red-500' : 'bg-gray-400 text-gray-700 cursor-not-allowed grayscale'}`}
+                  >
+                    <Camera size={18} /> BUKA KAMERA
+                  </motion.button>
                 </div>
               </motion.div>
-            </div>
-            <div className="flex justify-between items-center text-xs text-white/80 pointer-events-auto">
-              <span>Jaga jarak & pastikan aman saat bermain.</span>
-              <button
-                disabled={isMinting}
-                onClick={handleCatch}
-                className="bg-green-500 px-4 py-2 rounded-full border-2 border-white font-bold text-xs shadow-lg active:translate-y-1 active:shadow-none disabled:opacity-50"
-              >
-                {isMinting ? 'MINTING...' : 'TANGKAP SEKARANG'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          )}
+          {viewMode === 'ar' && (
+             <motion.div
+                key="ar"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}
+                className="absolute inset-0 z-50 bg-black"
+             >
+                <Webcam
+                    audio={false}
+                    className="absolute inset-0 w-full h-full object-cover opacity-80"
+                    videoConstraints={{ facingMode: 'environment' }}
+                    onUserMediaError={(e) => alert('Kamera Error: ' + e)}
+                />
+                <div className="absolute inset-0 p-6 flex flex-col justify-between z-50">
+                    <div className="flex justify-between pointer-events-auto mt-16">
+                    <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setViewMode('map')}
+                        className="bg-black/60 p-3 rounded-full text-white border-2 border-white backdrop-blur-md hover:bg-red-600 transition-colors"
+                    >
+                        <X />
+                    </motion.button>
+                    <div className="bg-red-600/90 px-4 py-2 rounded-full text-xs font-bold animate-pulse border-2 border-white text-white shadow-lg backdrop-blur-md flex items-center gap-2">
+                        <div className="w-2 h-2 bg-white rounded-full animate-ping" /> LIVE
+                    </div>
+                    </div>
+                    
+                    <div className="flex-1 flex items-center justify-center pointer-events-auto perspective-1000">
+                    <motion.div
+                        initial={{ scale: 0, rotateY: 180, opacity: 0 }}
+                        animate={{ scale: 1, rotateY: 0, opacity: 1 }}
+                        transition={{ type: 'spring', bounce: 0.6, duration: 0.8 }}
+                        className="cursor-pointer relative group"
+                        onClick={handleCatch}
+                    >
+                        <div className="ghost-body scale-[3.5] filter drop-shadow-[0_0_30px_rgba(255,255,255,0.8)] border-4 border-black">
+                        <div className="ghost-face" />
+                        <div className="ghost-skirt" />
+                        </div>
+                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/70 text-white px-4 py-1 rounded-full border-2 border-white text-xs font-bold tracking-widest whitespace-nowrap">
+                        TAP !!!
+                        </div>
+                    </motion.div>
+                    </div>
 
+                    <div className="flex justify-center w-full pointer-events-auto pb-8">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        disabled={isMinting}
+                        onClick={handleCatch}
+                        className="bg-green-500 w-full max-w-xs py-4 rounded-xl border-4 border-white font-bold text-xl shadow-lg active:scale-95 disabled:opacity-50 font-['VT323'] hover-shake"
+                    >
+                        {isMinting ? 'MENANGKAP...' : 'TANGKAP PET INI!'}
+                    </motion.button>
+                    </div>
+                </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
       <AnimatePresence>
         {showInventory && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-[999]"
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4"
           >
             <motion.div
               initial={{ scale: 0.8, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, y: 20 }}
-              className="bg-[#f5f6fa] text-black rounded-3xl border-4 border-black p-6 w-full max-w-md shadow-[0_0_40px_rgba(0,0,0,0.7)]"
+              className="pixel-card p-0 w-full max-w-sm overflow-hidden"
             >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-['VT323'] text-3xl tracking-widest">INVENTORY</h2>
-                <button
-                  onClick={() => setShowInventory(false)}
-                  className="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center border-2 border-black"
-                >
-                  <X size={16} />
-                </button>
+              <div className="bg-[#ff4757] p-4 border-b-4 border-black flex justify-between items-center text-white">
+                <h2 className="font-['VT323'] text-3xl tracking-widest">TAS BEKAL</h2>
+                <button onClick={() => setShowInventory(false)} className="hover:rotate-90 transition-transform"><X size={24}/></button>
               </div>
 
-              {foodList.length === 0 ? (
-                <div className="text-center text-gray-500 text-sm">Tas kamu kosong. Beli makanan dulu.</div>
-              ) : (
-                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                  {foodList.map((f: any) => (
-                    <div
-                      key={f.data?.objectId}
-                      className="flex items-center justify-between bg-white rounded-2xl border-2 border-gray-300 px-4 py-3 shadow-sm"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-yellow-100 border-2 border-yellow-400 flex items-center justify-center text-2xl">
-                          🍗
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm">Chicken Nugget</p>
-                          <p className="text-[10px] text-gray-500 border border-dashed border-gray-300 px-2 py-0.5 rounded w-fit">
-                            STAMINA +50
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        className="bg-green-500 text-white px-5 py-2 rounded-xl font-bold shadow-[0_4px_0_#15803d] active:translate-y-1 active:shadow-none transition-all text-sm border-2 border-green-700 hover:bg-green-400"
-                        onClick={() => handleFeed(f.data?.objectId)}
-                      >
-                        PAKAI
-                      </button>
+              <div className="p-4 max-h-[60vh] overflow-y-auto bg-[#f5f6fa] text-black">
+                {foodList.length === 0 ? (
+                    <div className="text-center py-10 opacity-50 font-mono text-sm">
+                        <div className="text-4xl mb-2">🕸️</div>
+                        Tas kosong melompong.
                     </div>
-                  ))}
-                </div>
-              )}
+                ) : (
+                    <div className="space-y-3">
+                    {foodList.map((f: any) => (
+                        <div key={f.data?.objectId} className="flex items-center justify-between bg-white border-2 border-black p-2 rounded-lg shadow-[2px_2px_0_#ccc]">
+                            <div className="flex items-center gap-3">
+                                <div className="text-2xl bg-yellow-100 p-2 rounded border border-black">🍗</div>
+                                <div>
+                                    <p className="font-bold font-['VT323'] text-xl leading-none">Nugget</p>
+                                    <p className="text-[10px] text-gray-500 font-bold">ENERGI +50</p>
+                                </div>
+                            </div>
+                            <motion.button 
+                                whileTap={{ scale: 0.95 }}
+                                className="bg-green-500 text-white px-3 py-1 rounded border-2 border-black text-sm font-bold hover:bg-green-400 active:translate-y-1 shadow-[0_2px_0_#14532d]"
+                                onClick={() => handleFeed(f.data?.objectId)}
+                            >
+                                MAKAN
+                            </motion.button>
+                        </div>
+                    ))}
+                    </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -597,45 +564,41 @@ export default function Home() {
   );
 }
 
-function StatusBar({ label, value, color, icon }: any) {
-  const percentage = Math.min(100, Math.max(0, value));
-  return (
-    <div className="flex items-center gap-3 text-xs md:text-sm font-bold text-gray-700">
-      <div className="w-24 flex items-center gap-2 text-gray-500">
-        {icon} {label}
-      </div>
-      <div className="flex-1 h-5 border-2 border-gray-300 rounded-full p-0.5 bg-gray-100 relative overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${percentage}%` }}
-          className={`h-full ${color} rounded-full relative shadow-sm`}
+function PixelButtonSmall({ color, icon, onClick }: any) {
+    return (
+        <motion.button 
+            onClick={onClick}
+            whileHover={{ scale: 1.05, filter: "brightness(1.1)" }}
+            whileTap={{ scale: 0.9, y: 4, boxShadow: "0px 0px 0px rgba(0,0,0,0)" }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            className={`w-full aspect-square ${color} border-2 border-black rounded-xl flex items-center justify-center shadow-[0px_4px_0px_black] text-black relative overflow-hidden`}
         >
-          <div className="absolute top-0 right-0 bottom-0 w-2 bg-white/20 blur-sm" />
-        </motion.div>
-      </div>
-      <div className="w-8 text-right font-mono text-black">{value}</div>
-    </div>
-  );
+            <motion.div 
+                className="absolute inset-0 bg-white opacity-0"
+                whileHover={{ opacity: 0.2, x: [-100, 100], transition: { duration: 0.5 } }}
+                style={{ skewX: -20 }}
+            />
+            <div className="relative z-10">{icon}</div>
+        </motion.button>
+    )
 }
 
-function PixelButton({ label, color, icon, onClick, disabled }: any) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`relative group w-full active:top-[4px] transition-all ${
-        disabled ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:-translate-y-1'
-      }`}
-    >
-      <div className="absolute inset-0 bg-black rounded-xl translate-y-[6px] transition-transform" />
-      <div
-        className={`relative ${color} border-4 border-black rounded-xl p-4 flex flex-col items-center justify-center h-full shadow-inner`}
-      >
-        <div className="text-black mb-1 scale-110">{icon}</div>
-        <span className="font-['VT323'] font-bold text-xl text-black tracking-widest">{label}</span>
+function StatusBar({ label, value, color, icon }: any) {
+    const percentage = Math.min(100, Math.max(0, value));
+    return (
+      <div className="flex items-center gap-2 mb-1">
+        <div className="w-12 text-xs font-bold text-gray-500 flex items-center gap-1">{icon} {label}</div>
+        <div className="flex-1 h-3 bg-gray-300 rounded-full border border-black overflow-hidden relative">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${percentage}%` }}
+            className={`h-full ${color} absolute left-0 top-0`}
+          />
+          <div className="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36zwjjgzhhZWGMYAEYB8RmROaABADeOQ8CXl/xfgAAAABJRU5ErkJggg==')] opacity-20 pointer-events-none" />
+        </div>
+        <div className="w-8 text-right font-mono text-xs font-bold text-black">{value}</div>
       </div>
-    </button>
-  );
+    );
 }
 
 function IntroScene({ account, isPending, refetch }: any) {
@@ -654,71 +617,74 @@ function IntroScene({ account, isPending, refetch }: any) {
     signAndExecute(
       { transaction: tx },
       {
-        onSuccess: () => {
-          setIsMinting(false);
-          refetch();
-        },
+        onSuccess: () => { setIsMinting(false); refetch(); },
         onError: () => setIsMinting(false),
       },
     );
   };
 
-  if (!account)
+  if (!account) {
     return (
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        className="pop-card p-10 text-center bg-white rounded-3xl max-w-sm border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,0.5)]"
+      <motion.div 
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
+        className="flex flex-col items-center justify-center h-full w-full relative overflow-hidden"
       >
-        <div className="text-6xl mb-4 animate-bounce">🥚</div>
-        <h2 className="text-4xl font-bold uppercase mb-4 text-black font-['VT323']">SUI PET GO</h2>
-        <p className="text-gray-600 font-mono text-sm mb-8 leading-relaxed">
-          Sambungkan Wallet SUI Anda untuk memulai petualangan mencari monster di dunia nyata!
-        </p>
-        <div className="animate-pulse text-xs text-blue-500 font-bold border-t border-gray-200 pt-4">
-          WAITING FOR CONNECTION.
+        <div className="absolute inset-0 opacity-20 bg-[size:40px_40px] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] pointer-events-none" />
+        <div className="absolute inset-0 crt-overlay z-10" />
+
+        <div className="relative z-20 flex flex-col items-center">
+            <div className="pixel-egg-container mb-8 scale-150">
+                <div className="pixel-egg-bg"></div>
+                <div className="pixel-egg-art"></div>
+            </div>
+            <div className="mb-8 transform -rotate-2">
+                <h1 className="font-['Press_Start_2P'] text-3xl text-white text-stroke-md drop-shadow-[4px_4px_0_rgba(0,0,0,0.8)] text-center leading-relaxed">
+                  SUI PET GO
+                </h1>
+            </div>
+
+            <div className="animate-pulse text-sm font-bold tracking-widest text-blue-300 bg-black/60 px-4 py-2 rounded font-['VT323'] border border-blue-500/30">
+            WAITING FOR CONNECTION...
+            </div>
         </div>
       </motion.div>
     );
+  }
 
-  if (isPending)
-    return (
-      <div className="flex flex-col items-center gap-6 text-white">
-        <div className="w-20 h-20 border-8 border-white border-t-transparent rounded-full animate-spin" />
-        <div className="text-3xl font-bold animate-pulse font-mono tracking-widest">LOADING.</div>
-      </div>
-    );
+  if (isPending) return <div className="text-white animate-pulse font-['VT323'] text-2xl">LOADING DATA...</div>;
 
   return (
-    <motion.div
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      className="pop-card p-8 w-full max-w-sm bg-white rounded-3xl border-4 border-black shadow-[10px_10px_0px_rgba(0,0,0,0.6)] flex flex-col gap-4"
+    <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} 
+        className="pixel-card p-8 w-full max-w-sm flex flex-col gap-6 items-center relative z-20"
     >
-      <div className="flex items-center gap-3">
-        <div className="w-16 h-16 rounded-2xl bg-yellow-200 border-4 border-black flex items-center justify-center text-4xl">
-          👻
-        </div>
-        <div>
-          <h2 className="text-3xl font-['VT323'] text-black tracking-widest">PILIH PET MU</h2>
-          <p className="text-xs text-gray-500 font-mono">Berikan nama untuk pet pertamamu.</p>
-        </div>
+      <div className="pixel-egg-container scale-75 h-20">
+         <div className="pixel-egg-bg"></div>
+         <div className="pixel-egg-art"></div>
+      </div>
+      
+      <div className="text-center">
+        <h2 className="text-3xl font-['VT323'] tracking-widest leading-none text-black">NEW PARTNER</h2>
+        <p className="text-xs text-gray-500 font-mono mt-1">Siapa nama teman barumu?</p>
       </div>
 
       <input
         value={petName}
         onChange={(e) => setPetName(e.target.value)}
-        placeholder="Nama Pet"
-        className="w-full border-2 border-black rounded-xl px-4 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="NAMA PET..."
+        maxLength={12}
+        className="w-full border-4 border-black p-3 font-['Press_Start_2P'] text-sm text-center outline-none focus:bg-yellow-50 text-black uppercase placeholder:text-gray-300"
       />
 
-      <button
+      <motion.button
         onClick={handleMint}
         disabled={isMinting || !petName}
-        className="bg-green-500 text-white w-full px-6 py-3 rounded-xl border-4 border-black font-bold text-lg shadow-[0_6px_0_#166534] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+        whileHover={{ scale: 1.02, backgroundColor: "#27ae60" }}
+        whileTap={{ scale: 0.95, y: 4, boxShadow: "0 0 0 black" }}
+        className="w-full bg-[#2ecc71] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-xs shadow-[4px_4px_0_black] transition-all disabled:opacity-50 disabled:cursor-not-allowed hover-shake relative"
       >
-        {isMinting ? 'MINTING...' : 'MULAI PETUALANGAN'}
-      </button>
+        {isMinting ? 'MINTING...' : 'START GAME'}
+      </motion.button>
     </motion.div>
   );
 }

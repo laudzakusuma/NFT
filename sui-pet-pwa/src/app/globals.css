@@ -207,3 +207,162 @@ body {
     98% { height: 2px; margin-top: 3px; }
   }
 }
+
+@layer utilities {
+  .crt-overlay {
+    background: linear-gradient(
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.15) 50%
+    );
+    background-size: 100% 3px;
+    pointer-events: none;
+    animation: scanline-move 15s linear infinite;
+    opacity: 0.6;
+  }
+  
+  .animated-grid-bg {
+    background-image: 
+        linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
+    animation: grid-pan 20s linear infinite;
+  }
+
+  @keyframes grid-pan {
+    0% { background-position: 0 0; }
+    100% { background-position: 30px 30px; }
+  }
+  
+  @keyframes scanline-move {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100%; }
+  }
+
+  @keyframes breathe-float {
+    0%, 100% { 
+      transform: translateY(0) scaleY(1) scaleX(1); 
+    }
+    50% { 
+      transform: translateY(-12px) scaleY(1.02) scaleX(0.98); 
+    }
+  }
+
+  .animate-blink {
+    animation: blink-animation 1s steps(5, start) infinite;
+  }
+
+  @keyframes blink-animation {
+    to {
+      visibility: hidden;
+    }
+  }
+
+  .text-stroke-md {
+    -webkit-text-stroke: 2px black;
+    paint-order: stroke fill;
+    text-shadow: none;
+  }
+  
+  .connect-btn-wrapper button {
+    background: transparent !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@layer components {
+  .pixel-egg-container {
+    position: relative;
+    width: 100px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: breathe-float 4s ease-in-out infinite;
+  }
+
+  .pixel-egg-bg {
+    position: absolute;
+    width: 70px;
+    height: 86px;
+    background-color: #ffeaa7;
+    border-radius: 45%;
+    z-index: 0;
+  }
+
+  .pixel-egg-art {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+    z-index: 1;
+    box-shadow:
+      0px -48px 0 0 #000, 8px -48px 0 0 #000, 16px -48px 0 0 #000, 24px -48px 0 0 #000,
+      -8px -48px 0 0 #000, -16px -48px 0 0 #000,
+      -24px -40px 0 0 #000, 32px -40px 0 0 #000,
+      -32px -32px 0 0 #000, 40px -32px 0 0 #000,
+      -32px -24px 0 0 #000, 40px -24px 0 0 #000,
+      -40px -16px 0 0 #000, 48px -16px 0 0 #000,
+      -40px -8px 0 0 #000, 48px -8px 0 0 #000,
+      -40px 0px 0 0 #000, 48px 0px 0 0 #000,
+      -40px 8px 0 0 #000, 48px 8px 0 0 #000,
+      -40px 16px 0 0 #000, 48px 16px 0 0 #000,
+      -40px 24px 0 0 #000, 48px 24px 0 0 #000,
+      -32px 32px 0 0 #000, 40px 32px 0 0 #000,
+      -24px 40px 0 0 #000, 32px 40px 0 0 #000,
+      -16px 48px 0 0 #000, 24px 48px 0 0 #000,
+      -8px 48px 0 0 #000, 16px 48px 0 0 #000,
+      0px 48px 0 0 #000, 8px 48px 0 0 #000,
+
+      16px 32px 0 0 rgba(0,0,0,0.1), 8px 32px 0 0 rgba(0,0,0,0.1),
+      24px 24px 0 0 rgba(0,0,0,0.1),
+      
+      -16px -24px 0 0 #ffffff, -8px -24px 0 0 #ffffff,
+      -16px -16px 0 0 #ffffff, -8px -16px 0 0 #ffffff;
+  }
+
+  .ghost-container-animated {
+     animation: breathe-float 3.5s ease-in-out infinite;
+  }
+  
+  .hover-shake:hover {
+    animation: shake-little 0.2s ease-in-out infinite;
+  }
+  
+  @keyframes shake-little {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(1deg); }
+    75% { transform: rotate(-1deg); }
+  }
+
+  @keyframes egg-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .ghost-body {
+    width: 60px; height: 70px;
+    background: #a29bfe;
+    border: 4px solid black; border-bottom: none;
+    border-radius: 30px 30px 0 0;
+    position: relative;
+    box-shadow: inset 5px 5px 0px rgba(255,255,255,0.3);
+  }
+  .ghost-skirt {
+    position: absolute; bottom: -8px; left: -4px;
+    width: 68px; height: 12px;
+    background: radial-gradient(circle, #a29bfe 6px, transparent 7px);
+    background-size: 16px 20px;
+    background-position: bottom; background-repeat: repeat-x;
+    filter: drop-shadow(0px 4px 0px black);
+  }
+  .ghost-face {
+    position: absolute; top: 25px; left: 12px;
+    width: 8px; height: 8px; background: black;
+    box-shadow: 28px 0 0 black;
+  }
+}
