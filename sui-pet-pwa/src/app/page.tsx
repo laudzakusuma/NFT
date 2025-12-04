@@ -465,60 +465,51 @@ export default function Home() {
   );
 }
 
-function DashboardView({ petFields, petAction, setPetAction, handlePlay, setViewMode, setShowInventory }: any) {
+function DashboardView({ petFields, petAction, setPetAction, handlePlay, setViewMode, setShowInventory, petId }: any) {
+  
+  const monsterTypeIndex = petId ? parseInt(petId.slice(-1), 16) % 4 : 0;
+  
+  const getMonsterClass = () => {
+    switch (monsterTypeIndex) {
+      case 0: return 'monster-bunnyo';
+      case 1: return 'monster-sproutle';
+      case 2: return 'monster-toasty';
+      case 3: return 'monster-nimbus';
+      default: return 'monster-bunnyo';
+    }
+  };
+
+  const getBgColor = () => {
+    switch (monsterTypeIndex) {
+      case 0: return 'bg-pink-100 border-pink-300';
+      case 1: return 'bg-green-100 border-green-300';
+      case 2: return 'bg-orange-100 border-orange-300';
+      case 3: return 'bg-blue-100 border-blue-300';
+      default: return 'bg-gray-100 border-gray-300';
+    }
+  };
+
   return (
-    <motion.div
-      initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}
-      className="relative h-full flex flex-col items-center justify-center p-4"
-    >
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", bounce: 0.4 }}
-        className="w-full max-w-md pixel-card p-5 h-[80vh] flex flex-col justify-between relative z-20"
-      >
+    <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="relative h-full flex flex-col items-center justify-center p-4">
+      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="w-full max-w-md pixel-card p-5 h-[80vh] flex flex-col justify-between relative z-20">
         <div className="flex justify-between items-end border-b-2 border-dashed border-gray-300 pb-2 text-black">
           <div>
-            <h1 className="text-6xl font-bold uppercase font-['VT323'] leading-none text-white text-stroke-md tracking-widest drop-shadow-sm">
-              {petFields.name}
-            </h1>
-            <span className="text-xs font-bold text-gray-500 font-['Press_Start_2P'] mt-1 block">LVL {petFields.level}</span>
+            <h1 className="text-6xl font-bold uppercase font-['VT323'] leading-none text-white text-stroke-md tracking-widest drop-shadow-sm">{petFields.name}</h1>
+            <span className="text-xs font-bold text-gray-500 font-['Press_Start_2P'] mt-1 block">LVL {petFields.level} • {['JELLY', 'PLANT', 'MECH', 'CLOUD'][monsterTypeIndex]} TYPE</span>
           </div>
-          <div className={`px-2 py-1 border-2 border-black text-[10px] font-bold ${petFields.hunger < 30 ? 'bg-red-500 text-white animate-pulse' : 'bg-green-400 text-black'}`}>
-            {petFields.hunger < 30 ? '! LAPAR' : 'KENYANG'}
-          </div>
+          <div className={`px-2 py-1 border-2 border-black text-[10px] font-bold ${petFields.hunger < 30 ? 'bg-red-500 text-white animate-pulse' : 'bg-green-400 text-black'}`}>{petFields.hunger < 30 ? '! LAPAR' : 'KENYANG'}</div>
         </div>
-        <div 
-            className="flex-1 flex items-center justify-center relative my-4 bg-gray-50 rounded-lg border-2 border-gray-200 inner-shadow overflow-hidden group cursor-pointer"
-            onClick={() => setPetAction('happy')}
-        >
-            <div className="absolute inset-0 opacity-10 animated-grid-bg bg-blue-500"></div>
-          
-            <motion.div 
-                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                className="absolute top-4 right-4 bg-white border-2 border-black px-3 py-1 rounded-lg rounded-bl-none animate-bounce shadow-sm z-10 text-black"
-            >
-              <p className="text-[10px] font-bold font-['Press_Start_2P']">
-                {petAction === 'eating' ? 'NYAM!' : petFields.hunger < 30 ? 'LAPAR..' : petFields.happiness < 30 ? 'BOSAN.' : 'HAI!'}
-              </p>
+        <div className={`flex-1 flex items-center justify-center relative my-4 ${getBgColor()} rounded-lg border-4 border-black inner-shadow overflow-hidden group cursor-pointer`} onClick={() => setPetAction('happy')}>
+            <div className="absolute inset-0 opacity-20 animated-grid-bg bg-black/5"></div>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 bg-white border-2 border-black px-3 py-1 rounded-lg rounded-bl-none animate-bounce shadow-sm z-10 text-black">
+              <p className="text-[10px] font-bold font-['Press_Start_2P']">{petAction === 'eating' ? 'NYAM!' : petFields.hunger < 30 ? 'LAPAR..' : petFields.happiness < 30 ? 'BOSAN.' : 'HAI!'}</p>
             </motion.div>
-            <motion.div
-              animate={
-                petAction === 'happy' ? { y: [0, -40, 0], rotate: [0, 10, -10, 5, -5, 0], scale: 1.1 }
-                : petAction === 'eating' ? { scale: [1, 1.3, 0.9, 1.1, 1], rotate: [0, -5, 5, 0] }
-                : {} 
-              }
-              transition={{ duration: 0.6, ease: "easeInOut" }}
-              className={`scale-[3] filter drop-shadow-md relative z-10 ${petAction === 'idle' ? 'ghost-container-animated' : ''}`}
-            >
-              <div className="ghost-body"><div className="ghost-face" /><div className="ghost-skirt" /></div>
+            <motion.div animate={petAction === 'happy' ? { y: [0, -40, 0], rotate: [0, 10, -10, 5, -5, 0], scale: 1.1 } : petAction === 'eating' ? { scale: [1, 1.3, 0.9, 1.1, 1], rotate: [0, -5, 5, 0] } : {} } transition={{ duration: 0.6, ease: "easeInOut" }} className={`scale-[3] filter drop-shadow-lg relative z-10`}>
+              <div className={getMonsterClass()}></div>
             </motion.div>
         </div>
         <div className="space-y-3">
-          <div className="bg-gray-100 p-3 rounded-lg border-2 border-gray-300">
-            <StatusBar label="HP" value={petFields.hunger || 0} color="bg-orange-500" icon={<Utensils size={12} />} />
-            <StatusBar label="JOY" value={petFields.happiness || 0} color="bg-pink-500" icon={<Heart size={12} />} />
-          </div>
+          <div className="bg-gray-100 p-3 rounded-lg border-2 border-gray-300"><StatusBar label="HP" value={petFields.hunger || 0} color="bg-orange-500" icon={<Utensils size={12} />} /><StatusBar label="JOY" value={petFields.happiness || 0} color="bg-pink-500" icon={<Heart size={12} />} /></div>
           <div className="grid grid-cols-4 gap-2">
               <PixelButtonSmall color="bg-blue-400" icon={<Gamepad2 size={20} />} onClick={handlePlay} />
               <PixelButtonSmall color="bg-yellow-400" icon={<Gift size={20} />} onClick={() => setViewMode('gacha')} /> 

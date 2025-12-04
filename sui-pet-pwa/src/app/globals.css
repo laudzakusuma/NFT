@@ -276,6 +276,59 @@ body {
 }
 
 @layer components {
+  .monster-bunnyo {
+    width: 10px; height: 10px; background: transparent;
+    box-shadow: 
+      20px 40px 0 0 #fd79a8, 30px 40px 0 0 #fd79a8, 40px 40px 0 0 #fd79a8,
+      10px 50px 0 0 #fd79a8, 50px 50px 0 0 #fd79a8,
+      10px 60px 0 0 #fd79a8, 50px 60px 0 0 #fd79a8,
+      20px 70px 0 0 #fd79a8, 30px 70px 0 0 #fd79a8, 40px 70px 0 0 #fd79a8,
+      20px 20px 0 0 #fd79a8, 20px 30px 0 0 #fd79a8,
+      40px 20px 0 0 #fd79a8, 40px 30px 0 0 #fd79a8,
+      20px 50px 0 0 #2d3436, 40px 50px 0 0 #2d3436,
+      30px 60px 0 0 #ffeaa7;
+    animation: bounce-soft 2s infinite ease-in-out;
+  }
+
+  .monster-sproutle {
+    width: 10px; height: 10px; background: transparent;
+    box-shadow:
+      20px 40px 0 0 #00b894, 30px 40px 0 0 #00b894, 40px 40px 0 0 #00b894,
+      10px 50px 0 0 #00b894, 20px 50px 0 0 #00b894, 30px 50px 0 0 #00b894, 40px 50px 0 0 #00b894, 50px 50px 0 0 #00b894,
+      60px 50px 0 0 #55efc4, 60px 60px 0 0 #55efc4,
+      20px 60px 0 0 #55efc4, 40px 60px 0 0 #55efc4,
+      20px 30px 0 0 #00cec9, 30px 20px 0 0 #00cec9;
+    animation: breathe-float 4s infinite ease-in-out;
+  }
+
+  .monster-toasty {
+    width: 10px; height: 10px; background: transparent;
+    box-shadow:
+      10px 40px 0 0 #b2bec3, 20px 40px 0 0 #b2bec3, 30px 40px 0 0 #b2bec3, 40px 40px 0 0 #b2bec3, 50px 40px 0 0 #b2bec3,
+      10px 50px 0 0 #636e72, 20px 50px 0 0 #636e72, 30px 50px 0 0 #636e72, 40px 50px 0 0 #636e72, 50px 50px 0 0 #636e72,
+      10px 60px 0 0 #636e72, 20px 60px 0 0 #636e72, 30px 60px 0 0 #636e72, 40px 60px 0 0 #636e72, 50px 60px 0 0 #636e72,
+      10px 70px 0 0 #2d3436, 50px 70px 0 0 #2d3436,
+      20px 30px 0 0 #e17055, 30px 20px 0 0 #d63031, 40px 30px 0 0 #e17055,
+      20px 50px 0 0 #fab1a0, 40px 50px 0 0 #fab1a0;
+    animation: shake-little 0.5s infinite;
+  }
+
+  .monster-nimbus {
+    width: 10px; height: 10px; background: transparent;
+    box-shadow:
+      20px 30px 0 0 #dfe6e9, 30px 30px 0 0 #dfe6e9, 40px 30px 0 0 #dfe6e9,
+      10px 40px 0 0 #dfe6e9, 20px 40px 0 0 #ffffff, 30px 40px 0 0 #ffffff, 40px 40px 0 0 #ffffff, 50px 40px 0 0 #dfe6e9,
+      20px 50px 0 0 #dfe6e9, 30px 50px 0 0 #dfe6e9, 40px 50px 0 0 #dfe6e9,
+      20px 40px 0 0 #0984e3, 40px 40px 0 0 #0984e3,
+      50px 30px 0 0 #ffeaa7;
+    animation: egg-float 3s infinite ease-in-out;
+  }
+
+  @keyframes bounce-soft {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-10px) scale(1.05, 0.95); }
+  }
+
   .pixel-egg-container {
     position: relative;
     width: 100px;
