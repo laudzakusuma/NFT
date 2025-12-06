@@ -35,6 +35,12 @@ body {
 }
 
 @layer utilities {
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+
   .pop-card {
     background-color: white;
     border: 4px solid black;
@@ -277,50 +283,77 @@ body {
 
 @layer components {
   .monster-bunnyo {
-    width: 10px; height: 10px; background: transparent;
+    width: 4px; height: 4px; /* Skala Pixel */
+    background: transparent;
+    color: #fd79a8; /* Warna Utama */
     box-shadow: 
-      20px 40px 0 0 #fd79a8, 30px 40px 0 0 #fd79a8, 40px 40px 0 0 #fd79a8,
-      10px 50px 0 0 #fd79a8, 50px 50px 0 0 #fd79a8,
-      10px 60px 0 0 #fd79a8, 50px 60px 0 0 #fd79a8,
-      20px 70px 0 0 #fd79a8, 30px 70px 0 0 #fd79a8, 40px 70px 0 0 #fd79a8,
-      20px 20px 0 0 #fd79a8, 20px 30px 0 0 #fd79a8,
-      40px 20px 0 0 #fd79a8, 40px 30px 0 0 #fd79a8,
-      20px 50px 0 0 #2d3436, 40px 50px 0 0 #2d3436,
-      30px 60px 0 0 #ffeaa7;
+      /* Telinga Kiri */
+      5em -4em, 6em -4em, 5em -3em, 6em -3em, 5em -2em, 6em -2em,
+      /* Telinga Kanan */
+      9em -4em, 10em -4em, 9em -3em, 10em -3em, 9em -2em, 10em -2em,
+      /* Kepala Atas */
+      4em -1em, 5em -1em, 6em -1em, 7em -1em, 8em -1em, 9em -1em, 10em -1em, 11em -1em,
+      /* Wajah */
+      3em 0, 4em 0, 5em 0, 6em 0, 7em 0, 8em 0, 9em 0, 10em 0, 11em 0, 12em 0,
+      3em 1em, 4em 1em, 5em 1em, 6em 1em, 7em 1em, 8em 1em, 9em 1em, 10em 1em, 11em 1em, 12em 1em,
+      /* Mata (Hitam) & Pipi */
+      3em 2em, 4em 2em, 5em 2em #2d3436, 6em 2em, 7em 2em, 8em 2em, 9em 2em, 10em 2em #2d3436, 11em 2em, 12em 2em,
+      3em 3em, 4em 3em #fab1a0, 5em 3em, 6em 3em, 7em 3em, 8em 3em, 9em 3em, 10em 3em, 11em 3em #fab1a0, 12em 3em,
+      /* Badan Bawah */
+      4em 4em, 5em 4em, 6em 4em, 7em 4em, 8em 4em, 9em 4em, 10em 4em, 11em 4em;
+      
     animation: bounce-soft 2s infinite ease-in-out;
   }
 
+  /* --- MONSTER 2: SPROUTLE (Plant Turtle - Green) --- */
   .monster-sproutle {
-    width: 10px; height: 10px; background: transparent;
-    box-shadow:
-      20px 40px 0 0 #00b894, 30px 40px 0 0 #00b894, 40px 40px 0 0 #00b894,
-      10px 50px 0 0 #00b894, 20px 50px 0 0 #00b894, 30px 50px 0 0 #00b894, 40px 50px 0 0 #00b894, 50px 50px 0 0 #00b894,
-      60px 50px 0 0 #55efc4, 60px 60px 0 0 #55efc4,
-      20px 60px 0 0 #55efc4, 40px 60px 0 0 #55efc4,
-      20px 30px 0 0 #00cec9, 30px 20px 0 0 #00cec9;
+    width: 4px; height: 4px;
+    background: transparent;
+    color: #00b894; /* Hijau Tua */
+    box-shadow: 
+      /* Daun di Kepala */
+      7em -4em #55efc4, 8em -3em #55efc4, 7em -2em #55efc4,
+      /* Kepala */
+      6em -1em #55efc4, 7em -1em #55efc4, 8em -1em #55efc4,
+      5em 0 #55efc4, 6em 0 #2d3436, 7em 0 #55efc4, 8em 0 #55efc4, 9em 0 #2d3436, 10em 0 #55efc4,
+      /* Cangkang Atas */
+      4em 1em, 5em 1em, 6em 1em, 7em 1em, 8em 1em, 9em 1em, 10em 1em, 11em 1em,
+      /* Cangkang Tengah */
+      3em 2em, 4em 2em, 5em 2em #00cec9, 6em 2em, 7em 2em, 8em 2em, 9em 2em #00cec9, 10em 2em, 11em 2em, 12em 2em,
+      3em 3em, 4em 3em, 5em 3em, 6em 3em, 7em 3em, 8em 3em, 9em 3em, 10em 3em, 11em 3em, 12em 3em,
+      4em 4em #55efc4, 5em 4em #55efc4, 10em 4em #55efc4, 11em 4em #55efc4;
+      
     animation: breathe-float 4s infinite ease-in-out;
   }
 
   .monster-toasty {
-    width: 10px; height: 10px; background: transparent;
-    box-shadow:
-      10px 40px 0 0 #b2bec3, 20px 40px 0 0 #b2bec3, 30px 40px 0 0 #b2bec3, 40px 40px 0 0 #b2bec3, 50px 40px 0 0 #b2bec3,
-      10px 50px 0 0 #636e72, 20px 50px 0 0 #636e72, 30px 50px 0 0 #636e72, 40px 50px 0 0 #636e72, 50px 50px 0 0 #636e72,
-      10px 60px 0 0 #636e72, 20px 60px 0 0 #636e72, 30px 60px 0 0 #636e72, 40px 60px 0 0 #636e72, 50px 60px 0 0 #636e72,
-      10px 70px 0 0 #2d3436, 50px 70px 0 0 #2d3436,
-      20px 30px 0 0 #e17055, 30px 20px 0 0 #d63031, 40px 30px 0 0 #e17055,
-      20px 50px 0 0 #fab1a0, 40px 50px 0 0 #fab1a0;
+    width: 4px; height: 4px;
+    background: transparent;
+    color: #636e72;
+    box-shadow: 
+      6em -3em #e17055, 9em -3em #e17055,
+      6em -2em #d63031, 7em -2em #d63031, 8em -2em #d63031, 9em -2em #d63031,
+      4em -1em, 5em -1em, 6em -1em, 7em -1em, 8em -1em, 9em -1em, 10em -1em, 11em -1em,
+      4em 0, 5em 0 #000, 6em 0 #fab1a0, 7em 0 #000, 8em 0 #000, 9em 0 #fab1a0, 10em 0 #000, 11em 0,
+      4em 1em, 5em 1em, 6em 1em, 7em 1em, 8em 1em, 9em 1em, 10em 1em, 11em 1em,
+      4em 2em, 5em 2em, 6em 2em, 7em 2em, 8em 2em, 9em 2em, 10em 2em, 11em 2em,
+      5em 3em #2d3436, 6em 3em #2d3436, 9em 3em #2d3436, 10em 3em #2d3436;
+      
     animation: shake-little 0.5s infinite;
   }
 
   .monster-nimbus {
-    width: 10px; height: 10px; background: transparent;
+    width: 4px; height: 4px;
+    background: transparent;
+    color: #dfe6e9;
     box-shadow:
-      20px 30px 0 0 #dfe6e9, 30px 30px 0 0 #dfe6e9, 40px 30px 0 0 #dfe6e9,
-      10px 40px 0 0 #dfe6e9, 20px 40px 0 0 #ffffff, 30px 40px 0 0 #ffffff, 40px 40px 0 0 #ffffff, 50px 40px 0 0 #dfe6e9,
-      20px 50px 0 0 #dfe6e9, 30px 50px 0 0 #dfe6e9, 40px 50px 0 0 #dfe6e9,
-      20px 40px 0 0 #0984e3, 40px 40px 0 0 #0984e3,
-      50px 30px 0 0 #ffeaa7;
+      6em -3em, 7em -3em, 8em -3em, 9em -3em,
+      5em -2em, 6em -2em #fff, 7em -2em #fff, 8em -2em #fff, 9em -2em #fff, 10em -2em,
+      4em -1em, 5em -1em #fff, 6em -1em #0984e3, 7em -1em #fff, 8em -1em #fff, 9em -1em #0984e3, 10em -1em #fff, 11em -1em,
+      3em 0, 4em 0 #fff, 5em 0 #fab1a0, 6em 0 #fff, 7em 0 #fff, 8em 0 #fff, 9em 0 #fff, 10em 0 #fab1a0, 11em 0 #fff, 12em 0,
+      4em 1em, 5em 1em, 6em 1em, 7em 1em, 8em 1em, 9em 1em, 10em 1em, 11em 1em,
+      10em 2em #ffeaa7, 9em 3em #ffeaa7;
+
     animation: egg-float 3s infinite ease-in-out;
   }
 
@@ -328,70 +361,18 @@ body {
     0%, 100% { transform: translateY(0) scale(1); }
     50% { transform: translateY(-10px) scale(1.05, 0.95); }
   }
-
-  .pixel-egg-container {
-    position: relative;
-    width: 100px;
-    height: 120px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    animation: breathe-float 4s ease-in-out infinite;
-  }
-
-  .pixel-egg-bg {
-    position: absolute;
-    width: 70px;
-    height: 86px;
-    background-color: #ffeaa7;
-    border-radius: 45%;
-    z-index: 0;
-  }
-
-  .pixel-egg-art {
-    width: 8px;
-    height: 8px;
-    background: transparent;
-    z-index: 1;
-    box-shadow:
-      0px -48px 0 0 #000, 8px -48px 0 0 #000, 16px -48px 0 0 #000, 24px -48px 0 0 #000,
-      -8px -48px 0 0 #000, -16px -48px 0 0 #000,
-      -24px -40px 0 0 #000, 32px -40px 0 0 #000,
-      -32px -32px 0 0 #000, 40px -32px 0 0 #000,
-      -32px -24px 0 0 #000, 40px -24px 0 0 #000,
-      -40px -16px 0 0 #000, 48px -16px 0 0 #000,
-      -40px -8px 0 0 #000, 48px -8px 0 0 #000,
-      -40px 0px 0 0 #000, 48px 0px 0 0 #000,
-      -40px 8px 0 0 #000, 48px 8px 0 0 #000,
-      -40px 16px 0 0 #000, 48px 16px 0 0 #000,
-      -40px 24px 0 0 #000, 48px 24px 0 0 #000,
-      -32px 32px 0 0 #000, 40px 32px 0 0 #000,
-      -24px 40px 0 0 #000, 32px 40px 0 0 #000,
-      -16px 48px 0 0 #000, 24px 48px 0 0 #000,
-      -8px 48px 0 0 #000, 16px 48px 0 0 #000,
-      0px 48px 0 0 #000, 8px 48px 0 0 #000,
-
-      16px 32px 0 0 rgba(0,0,0,0.1), 8px 32px 0 0 rgba(0,0,0,0.1),
-      24px 24px 0 0 rgba(0,0,0,0.1),
-      
-      -16px -24px 0 0 #ffffff, -8px -24px 0 0 #ffffff,
-      -16px -16px 0 0 #ffffff, -8px -16px 0 0 #ffffff;
-  }
-
-  .ghost-container-animated {
-     animation: breathe-float 3.5s ease-in-out infinite;
-  }
   
-  .hover-shake:hover {
-    animation: shake-little 0.2s ease-in-out infinite;
+  @keyframes breathe-float {
+    0%, 100% { transform: translateY(0) scaleY(1); }
+    50% { transform: translateY(-5px) scaleY(1.02); }
   }
-  
+
   @keyframes shake-little {
     0%, 100% { transform: rotate(0deg); }
     25% { transform: rotate(1deg); }
     75% { transform: rotate(-1deg); }
   }
-
+  
   @keyframes egg-float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }

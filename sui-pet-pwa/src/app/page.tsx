@@ -5,6 +5,10 @@ import {
   useSignAndExecuteTransaction, 
   useSuiClientQuery 
 } from '@mysten/dapp-kit';
+import dragonCommon from '../public/monsters/dragon_common.png';
+import dragonRare from '../public/monsters/dragon_rare.png';
+import dragonEpic from '../public/monsters/dragon_epic.png';
+import dragonLegendary from '../public/monsters/dragon_legendary.png';
 import { ConnectButton } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 import { useState, useEffect } from 'react';
@@ -118,6 +122,72 @@ function generateTarget(lat: number, lng: number): Target {
     type: Math.random() > 0.8 ? 'rare' : 'common',
   };
 }
+
+const MONSTER_IMAGE_PATHS = [
+  (dragonCommon as any).src,
+  (dragonRare as any).src,
+  (dragonEpic as any).src,
+  (dragonLegendary as any).src,
+];
+
+const AnimatedMonsterImage = ({ type, action }: { type: number, action: string }) => {
+  const imageSrc = MONSTER_IMAGE_PATHS[type % MONSTER_IMAGE_PATHS.length];
+  const breatheAnim = {
+    y: [0, -10, 0],
+    scale: [1, 1.03, 1],
+    transition: { 
+        duration: 5, 
+        repeat: Infinity, 
+        ease: "easeInOut" as const
+    }
+  };
+
+  const happyAnim = {
+    y: [0, -30, 0, -15, 0], rotate: [0, -5, 5, -2, 0], scale: 1.15,
+    transition: { duration: 0.8, ease: "easeInOut" as const }
+  };
+  
+  const eatAnim = {
+    scaleX: [1, 1.1, 0.95, 1], scaleY: [1, 0.95, 1.1, 1],
+    transition: { duration: 0.4, repeat: 2 }
+  };
+
+  const activeAnim = action === 'happy' ? happyAnim : action === 'eating' ? eatAnim : breatheAnim;
+    const auraAnim = {
+    opacity: [0.25, 0.6, 0.25],
+    scale: [0.9, 1.08, 0.9],
+  };
+
+  return (
+    <div className="relative flex items-center justify-center w-full h-full pointer-events-none">
+       <motion.div
+         className="absolute z-0 rounded-full"
+         style={{
+            width: '85%', height: '85%',
+            background:
+              'radial-gradient(circle, rgba(56,189,248,0.5) 0%, rgba(129,140,248,0.35) 35%, transparent 75%)',
+            boxShadow: '0 0 22px rgba(56,189,248,0.5)',
+            ...pixelPattern
+         }}
+         animate={action === 'idle' ? auraAnim : { opacity: 0 }}
+         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" as const }}
+       />
+       <motion.img
+          src={imageSrc}
+          alt="Monster Pet"
+          className="w-auto h-[90%] object-contain z-10 relative"
+          style={{
+            imageRendering: 'pixelated',
+            filter: 'drop-shadow(0 0 10px rgba(56,189,248,0.55))',
+          }}
+          animate={activeAnim}
+          onError={(e) => {
+            e.currentTarget.src = 'https://img.icons8.com/color/512/dragon.png';
+          }}
+        />
+    </div>
+  );
+};
 
 export default function Home() {
   const account = useCurrentAccount();
@@ -373,9 +443,9 @@ export default function Home() {
             exit={{ y: -100, opacity: 0 }}
             className="fixed top-4 left-0 right-0 z-[9999] flex justify-center pointer-events-none"
           >
-            <div className={`px-5 py-3 rounded-xl border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,0.5)] flex items-center gap-3 font-bold text-sm md:text-base font-['VT323'] tracking-wider uppercase
-              ${notification.type === 'success' ? 'bg-[#2ecc71] text-black' : notification.type === 'error' ? 'bg-[#ff4757] text-white' : 'bg-[#feca57] text-black'}
-            `}>
+            <div className={`px-5 py-3 rounded-xl border-4 border-black shadow-[4px_4px_0px rgba(0,0,0,0.5)] flex items-center gap-3 font-bold text-sm md:text-base font-['VT323'] tracking-wider uppercase
+              ${notification.type === 'success' ? 'bg-[#2ecc71] text-black' : notification.type === 'error' ? 'bg-[#ff4757] text-white' : 'bg-[#feca57] text-black'}`}
+            >
               {notification.type === 'success' ? <CheckCircle size={20} /> : notification.type === 'error' ? <AlertTriangle size={20} /> : <Navigation size={20} />}
               {notification.msg}
             </div>
@@ -391,7 +461,7 @@ export default function Home() {
       )}
       {account && (
         <div className="absolute top-0 left-0 right-0 p-4 z-[100] flex justify-between items-start pointer-events-none">
-          <div className="bg-[#feca57] border-2 border-black px-3 py-1 shadow-[2px_2px_0px_black] -rotate-2 rounded-md pointer-events-auto hover:rotate-0 transition-transform cursor-pointer" onClick={() => setViewMode('dashboard')}>
+          <div className="bg-[#feca57] border-2 border-black px-3 py-1 shadow-[2px_2px_0 black] -rotate-2 rounded-md pointer-events-auto hover:rotate-0 transition-transform cursor-pointer" onClick={() => setViewMode('dashboard')}>
             <h1 className="font-['Press_Start_2P'] text-black text-[10px] md:text-xs tracking-tighter">
               SUI<span className="text-white text-stroke-sm">GO</span>
             </h1>
@@ -418,6 +488,7 @@ export default function Home() {
                handlePlay={handlePlay}
                setViewMode={setViewMode}
                setShowInventory={setShowInventory}
+               petId={petObject?.data?.objectId}
             />
           )}
 
@@ -465,145 +536,563 @@ export default function Home() {
   );
 }
 
-function DashboardView({ petFields, petAction, setPetAction, handlePlay, setViewMode, setShowInventory, petId }: any) {
-  
-  const monsterTypeIndex = petId ? parseInt(petId.slice(-1), 16) % 4 : 0;
-  
-  const getMonsterClass = () => {
-    switch (monsterTypeIndex) {
-      case 0: return 'monster-bunnyo';
-      case 1: return 'monster-sproutle';
-      case 2: return 'monster-toasty';
-      case 3: return 'monster-nimbus';
-      default: return 'monster-bunnyo';
-    }
+const pixelPattern = {
+  backgroundImage: `url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAB5JREFUGFdjTIm//58BDJikmRgwAaZGpqR///8DABwTE/3U621XAAAAAElFTkSuQmCC")`,
+  backgroundSize: '4px 4px',
+  imageRendering: 'pixelated' as const
+};
+
+const cBase = "#4d1e1e";
+const cMid  = "#8a4f4f";
+const cHigh = "#dfb6a9";
+
+const CloudPuff = ({ className, width, height, color, scale = 1, opacity = 1 }: any) => {
+  return (
+    <div 
+      className={`absolute ${className}`} 
+      style={{ width, height, transform: `scale(${scale})`, opacity }}
+    >
+       <div 
+         className="absolute bottom-0 left-0 w-full h-[40%] rounded-full" 
+         style={{ backgroundColor: color, ...pixelPattern }} 
+       />
+       <div 
+         className="absolute bottom-[10%] left-[5%] w-[45%] h-[70%] rounded-full" 
+         style={{ backgroundColor: color, ...pixelPattern }} 
+       />
+       <div 
+         className="absolute bottom-[10%] right-[5%] w-[50%] h-[75%] rounded-full" 
+         style={{ backgroundColor: color, ...pixelPattern }} 
+       />
+       <div 
+         className="absolute bottom-[30%] left-[25%] w-[50%] h-[60%] rounded-full" 
+         style={{ backgroundColor: color, ...pixelPattern }} 
+       />
+    </div>
+  );
+};
+
+const CloudFloorSegment = () => (
+  <div className="relative w-full h-full">
+    <CloudBlob
+      className="bottom-[-18%] left-[-10%] w-[120%] h-[55%]"
+      color={cBase}
+    />
+    <CloudPuff
+      className="bottom-[-20%] left-[-10%]"
+      width="230px"
+      height="90px"
+      color={cMid}
+      scale={1.1}
+    />
+    <CloudPuff
+      className="bottom-[-22%] left-[30%]"
+      width="230px"
+      height="90px"
+      color={cMid}
+      scale={1.1}
+    />
+    <CloudPuff
+      className="bottom-[-25%] left[-2%]"
+      width="210px"
+      height="80px"
+      color={cHigh}
+      scale={1.05}
+    />
+    <CloudPuff
+      className="bottom-[-27%] left-[42%]"
+      width="210px"
+      height="80px"
+      color={cHigh}
+      scale={1.05}
+    />
+  </div>
+);
+
+const CloudBlob = ({ className, color, style }: any) => (
+    <div 
+        className={`absolute rounded-full ${className}`} 
+        style={{ 
+            backgroundColor: color, 
+            ...pixelPattern,
+            boxShadow: 'inset -3px -3px 0px rgba(0,0,0,0.25)',
+            ...style
+        }} 
+    />
+);
+
+const PixelCloud = ({ className, duration, delay, zIndex, scale = 1, opacity }: any) => {
+  return (
+    <motion.div
+      initial={{ x: "-150%" }}
+      animate={{ x: "400%" }}
+      transition={{ 
+        repeat: Infinity, 
+        duration: duration, 
+        ease: "linear" as const,
+        delay: delay 
+      }}
+      className={`absolute pointer-events-none flex items-end ${className} ${zIndex}`}
+      style={{ scale, opacity }}
+    >
+      <div className="relative w-32 h-16">
+         <CloudBlob className="bottom-0 left-0 w-24 h-12" color={cHigh} />
+         <CloudBlob className="bottom-4 left-6 w-16 h-12" color={cHigh} />
+         <CloudBlob className="bottom-2 left-14 w-14 h-10" color={cHigh} />
+      </div>
+    </motion.div>
+  );
+};
+
+const FlyingPixelCloud = ({ duration, top, scale, opacity }: any) => {
+    return (
+        <motion.div
+            initial={{ x: "-150%" }}
+            animate={{ x: "400%" }}
+            transition={{ 
+                repeat: Infinity, 
+                duration: duration, 
+                ease: "linear" as const
+            }}
+            className="absolute z-0 pointer-events-none"
+            style={{ top, scale, opacity }}
+        >
+            <CloudPuff className="" width="100px" height="60px" color={cHigh} />
+        </motion.div>
+    )
+}
+
+const CloudSegment = () => (
+  <div className="relative w-full h-full">
+      <CloudBlob className="bottom-[-20%] left-[-10%] w-[70%] h-[100%]" color={cBase} />
+      <CloudBlob className="bottom-[-30%] right-[-10%] w-[80%] h-[110%]" color={cBase} />
+      <CloudBlob className="bottom-[5%] left-[0%] w-[45%] h-[70%]" color={cMid} />
+      <CloudBlob className="bottom-[0%] left-[35%] w-[40%] h-[60%]" color={cMid} />
+      <CloudBlob className="bottom-[-10%] right-[0%] w-[50%] h-[80%]" color={cMid} />
+      <CloudBlob className="bottom-[30%] left-[10%] w-[30%] h-[40%]" color={cHigh} />
+      <CloudBlob className="bottom-[35%] left-[35%] w-[25%] h-[35%]" color={cHigh} />
+      <CloudBlob className="bottom-[25%] right-[15%] w-[35%] h-[45%]" color={cHigh} />
+      <CloudBlob className="bottom-[-20%] left-[20%] w-[60%] h-[60%]" color={cBase} />
+  </div>
+);
+
+const MovingCloudFloor = ({ zIndex = "z-20" }: { zIndex?: string }) => {
+  const scrollAnim = { x: ["-50%", "0%"] };
+  const scrollTransition = { 
+     duration: 40, 
+     repeat: Infinity, 
+     ease: "linear" as const
   };
 
-  const getBgColor = () => {
-    switch (monsterTypeIndex) {
-      case 0: return 'bg-pink-100 border-pink-300';
-      case 1: return 'bg-green-100 border-green-300';
-      case 2: return 'bg-orange-100 border-orange-300';
-      case 3: return 'bg-blue-100 border-blue-300';
-      default: return 'bg-gray-100 border-gray-300';
-    }
+  const verticalWave = { y: [0, 5, 0] };
+  const verticalTransition = { 
+     duration: 6, 
+     repeat: Infinity, 
+     ease: "easeInOut" as const
   };
 
   return (
+      <div className={`absolute bottom-0 left-0 right-0 h-[35%] pointer-events-none ${zIndex} overflow-hidden`}>
+          <motion.div animate={verticalWave} transition={verticalTransition} className="w-full h-full relative">
+               <motion.div 
+                animate={scrollAnim}
+                transition={scrollTransition}
+                className="flex w-[200%] h-full absolute left-0 bottom-0"
+              >
+                <div className="w-1/2 h-full relative"><CloudFloorSegment /></div>
+                <div className="w-1/2 h-full relative"><CloudFloorSegment /></div>
+
+              </motion.div>
+          </motion.div>
+      </div>
+  );
+};
+const LightningFlash = () => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ 
+      opacity: [0, 0.9, 0, 0.6, 0, 0, 0, 0.8, 0],
+      backgroundColor: ["#fff", "#fff", "#fff", "#fdba74", "#fff", "#fff", "#fff", "#fff", "#fff"]
+    }}
+    transition={{ 
+      duration: 6,
+      times: [0, 0.02, 0.05, 0.07, 0.1, 0.5, 0.8, 0.82, 1],
+      repeat: Infinity, 
+      repeatDelay: Math.random() * 5
+    }}
+    className="absolute inset-0 z-[5] mix-blend-overlay pointer-events-none"
+  />
+);
+
+function DashboardView({ petFields, petAction, setPetAction, handlePlay, setViewMode, setShowInventory, petId }: any) {
+  const monsterTypeIndex = petId ? parseInt(petId.slice(-1), 16) % 4 : 0;
+  
+  const monsterName = [
+    'FOREST DRAGON',
+    'GLACIER DRAGON',
+    'INFERNO DRAGON',
+    'ROYAL DRAGON'
+  ][monsterTypeIndex];
+
+  return (
     <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="relative h-full flex flex-col items-center justify-center p-4">
-      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="w-full max-w-md pixel-card p-5 h-[80vh] flex flex-col justify-between relative z-20">
-        <div className="flex justify-between items-end border-b-2 border-dashed border-gray-300 pb-2 text-black">
-          <div>
-            <h1 className="text-6xl font-bold uppercase font-['VT323'] leading-none text-white text-stroke-md tracking-widest drop-shadow-sm">{petFields.name}</h1>
-            <span className="text-xs font-bold text-gray-500 font-['Press_Start_2P'] mt-1 block">LVL {petFields.level} • {['JELLY', 'PLANT', 'MECH', 'CLOUD'][monsterTypeIndex]} TYPE</span>
-          </div>
-          <div className={`px-2 py-1 border-2 border-black text-[10px] font-bold ${petFields.hunger < 30 ? 'bg-red-500 text-white animate-pulse' : 'bg-green-400 text-black'}`}>{petFields.hunger < 30 ? '! LAPAR' : 'KENYANG'}</div>
+        <div className="w-full max-w-md bg-gradient-to-br from-gray-900 to-black p-5 h-[80vh] flex flex-col justify-between relative z-20 border-4 border-white rounded-2xl shadow-[0_0_50px rgba(0,255,255,0.3)]">
+            <div className="flex justify-between items-end border-b-2 border-white/30 pb-2 relative z-30">
+                <div>
+                    <h1 className="text-4xl font-bold font-['VT323'] tracking-widest text-white [text-shadow:_2px_2px_0_#000,_-2px_-2px_0_#000,_2px_-2px_0_#000,_-2px_2px_0_#000]">
+                        {petFields.name}
+                    </h1>
+                    <span className="text-xs font-bold text-cyan-300 font-['Press_Start_2P'] mt-1 block uppercase [text-shadow:_1px_1px_0_#000]">
+                        {monsterName} • LVL {petFields.level}
+                    </span>
+                </div>
+                <div className={`px-3 py-1 border-2 border-black text-xs font-bold font-['Press_Start_2P'] ${petFields.hunger < 30 ? 'bg-red-600 text-white' : 'bg-green-600 text-white'} [text-shadow:_1px_1px_0_#000]`}>
+                    {petFields.hunger < 30 ? 'LAPAR!' : 'KENYANG'}
+                </div>
+            </div>
+            <div 
+               className={`flex-1 flex items-center justify-center relative my-4 rounded-xl border-4 border-white/50 overflow-hidden group cursor-pointer shadow-inner
+                  bg-gradient-to-b from-[#b91c1c] via-[#7f1d1d] to-[#3b0b0b]`}
+                onClick={() => setPetAction('happy')}
+            >
+                 <div className="absolute inset-0 opacity-10 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay z-[1] pointer-events-none"></div>
+                 <LightningFlash />
+                 <FlyingPixelCloud duration={60} top="15%" scale={0.5} opacity={0.3} />
+                 <FlyingPixelCloud duration={50} top="25%" scale={0.7} opacity={0.2} />
+                 <PixelCloud
+                   className="top-[8%] left-[-20%]"
+                   duration={80}
+                   delay={0}
+                   zIndex="z-0"
+                   scale={1.1}
+                   opacity={0.7}
+                 />
+                 <PixelCloud
+                   className="top-[22%] left-[-25%]"
+                   duration={100}
+                   delay={10}
+                   zIndex="z-0"
+                   scale={0.9}
+                   opacity={0.6}
+                 />
+                <div className="absolute top-[18%] right-[8%] opacity-40 scale-[0.9] z-[3] pointer-events-none">
+                  <CloudSegment />
+                </div>
+
+                 <div className="relative z-10 w-full h-full flex items-center justify-center translate-y-12 scale-[1.35] transition-transform duration-500">
+                   <AnimatedMonsterImage type={monsterTypeIndex} action={petAction} />
+                 </div>
+                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} key={petAction} className="absolute top-4 right-4 bg-white border-2 border-black px-3 py-2 rounded-lg rounded-bl-none shadow-lg z-[30]">
+                     <p className="text-xs font-bold font-['Press_Start_2P'] text-black">
+                        {petAction === 'eating' ? 'NYAM!' : petAction === 'happy' ? 'ROAR!' : petFields.hunger < 30 ? '...' : 'GRRR.'}
+                     </p>
+                 </motion.div>
+                 <MovingCloudFloor zIndex="z-20" />
+            </div>
+            <div className="space-y-4 relative z-30">
+                <div className="bg-gray-900/80 p-4 rounded-xl border-2 border-white/30">
+                    <StatusBar label="HP" value={petFields.hunger} color="bg-orange-500" icon={<Utensils size={14}/>} />
+                    <StatusBar label="JOY" value={petFields.happiness} color="bg-pink-500" icon={<Heart size={14}/>} />
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                    <PixelButtonSmall color="bg-blue-600" icon={<Gamepad2 size={24}/>} onClick={handlePlay} />
+                    <PixelButtonSmall color="bg-yellow-600" icon={<Gift size={24}/>} onClick={() => setViewMode('gacha')} />
+                    <PixelButtonSmall color="bg-purple-600" icon={<Utensils size={24}/>} onClick={() => setShowInventory(true)} />
+                    <PixelButtonSmall color="bg-green-700" icon={<MapIcon size={24}/>} onClick={() => setViewMode('map')} />
+                </div>
+            </div>
         </div>
-        <div className={`flex-1 flex items-center justify-center relative my-4 ${getBgColor()} rounded-lg border-4 border-black inner-shadow overflow-hidden group cursor-pointer`} onClick={() => setPetAction('happy')}>
-            <div className="absolute inset-0 opacity-20 animated-grid-bg bg-black/5"></div>
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 bg-white border-2 border-black px-3 py-1 rounded-lg rounded-bl-none animate-bounce shadow-sm z-10 text-black">
-              <p className="text-[10px] font-bold font-['Press_Start_2P']">{petAction === 'eating' ? 'NYAM!' : petFields.hunger < 30 ? 'LAPAR..' : petFields.happiness < 30 ? 'BOSAN.' : 'HAI!'}</p>
-            </motion.div>
-            <motion.div animate={petAction === 'happy' ? { y: [0, -40, 0], rotate: [0, 10, -10, 5, -5, 0], scale: 1.1 } : petAction === 'eating' ? { scale: [1, 1.3, 0.9, 1.1, 1], rotate: [0, -5, 5, 0] } : {} } transition={{ duration: 0.6, ease: "easeInOut" }} className={`scale-[3] filter drop-shadow-lg relative z-10`}>
-              <div className={getMonsterClass()}></div>
-            </motion.div>
-        </div>
-        <div className="space-y-3">
-          <div className="bg-gray-100 p-3 rounded-lg border-2 border-gray-300"><StatusBar label="HP" value={petFields.hunger || 0} color="bg-orange-500" icon={<Utensils size={12} />} /><StatusBar label="JOY" value={petFields.happiness || 0} color="bg-pink-500" icon={<Heart size={12} />} /></div>
-          <div className="grid grid-cols-4 gap-2">
-              <PixelButtonSmall color="bg-blue-400" icon={<Gamepad2 size={20} />} onClick={handlePlay} />
-              <PixelButtonSmall color="bg-yellow-400" icon={<Gift size={20} />} onClick={() => setViewMode('gacha')} /> 
-              <PixelButtonSmall color="bg-purple-400" icon={<Utensils size={20} />} onClick={() => setShowInventory(true)} />
-              <PixelButtonSmall color="bg-green-500" icon={<MapIcon size={20} />} onClick={() => setViewMode('map')} />
-          </div>
-        </div>
-      </motion.div>
     </motion.div>
   );
 }
 
-function GachaView({ state, reward, onPlay, onConfirm, onCancel, onBack }: any) {
+const PixelChest = ({ size = 220, state = 'ready', onClick }: any) => {
+  const chestMap = [
+    '000OOOO000',
+    '00OWWWW000',
+    '0OWWWWwW00',
+    '0OWwwwWW00',
+    '00HHHHH000',
+    '0OGGGGGGO0',
+    '0OGGGGGGO0',
+    '0OGGLGGOO0',
+    '00OOOOOO00',
+  ];
+
+  const palette: Record<string, string> = {
+    O: '#000000',
+    W: '#6f3a1d',
+    w: '#c97b3e',
+    G: '#ffd86a',
+    H: '#d1c58f',
+    '0': 'transparent',
+  };
+
+  const cols = chestMap[0].length;
+  const rows = chestMap.length;
+  const cell = Math.max(4, Math.floor(size / cols));
+
+  const lidRows = chestMap.slice(0, 4);
+  const hingeRow = chestMap[4];
+  const bodyRows = chestMap.slice(5);
+
+  const isShaking = state === 'shaking';
+  const isOpen = state === 'preview' || state === 'claiming';
+
+  const renderRows = (rowsArr: string[], rowOffset = 0) =>
+    rowsArr.flatMap((row, rIdx) =>
+      row.split('').map((ch, cIdx) => {
+        const color = palette[ch] ?? 'transparent';
+        return (
+          <div
+            key={`p-${rowOffset + rIdx}-${cIdx}`}
+            style={{
+              width: cell,
+              height: cell,
+              backgroundColor: color,
+              boxSizing: 'border-box',
+              border: color === 'transparent' ? 'none' : '1px solid rgba(0,0,0,0.95)',
+            }}
+          />
+        );
+      })
+    );
+
   return (
     <motion.div
-        initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}
-        className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={onClick}
+      className="relative flex items-center justify-center"
+      style={{
+        width: cols * cell + 12,
+        height: rows * cell + 20,
+        cursor: onClick ? 'pointer' : 'default',
+        userSelect: 'none',
+        padding: 6,
+        borderRadius: Math.max(8, Math.round(cell * 0.6)),
+        background: 'linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.25))'
+      }}
+      animate={
+        isShaking
+          ? { x: [0, -6, 6, -4, 4, 0], rotate: [0, -2, 2, -1, 1, 0] }
+          : { x: 0, rotate: 0 }
+      }
+      transition={
+        isShaking
+          ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' as const }
+          : { duration: 0.35 }
+      }
     >
-        <motion.div 
-            initial={{ scale: 0.5, opacity: 0 }} 
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-sm flex flex-col items-center gap-8 relative z-50"
+      <motion.div
+        style={{
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          bottom: rows * cell * 0.06,
+          width: cols * cell * 0.72,
+          height: rows * cell * 0.44,
+          borderRadius: 9999,
+          background: 'radial-gradient(circle, rgba(255,230,120,0.95) 0%, rgba(255,160,60,0.14) 50%, transparent 80%)',
+          pointerEvents: 'none',
+        }}
+        animate={isOpen ? { opacity: [0.6, 1, 0.9] } : { opacity: 0.36 }}
+        transition={{ duration: 0.9, repeat: isOpen ? Infinity : 0, ease: 'easeInOut' as const }}
+      />
+      <div style={{ position: 'relative', width: cols * cell, height: rows * cell, lineHeight: 0 }}>
+        <motion.div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            display: 'grid',
+            gridTemplateColumns: `repeat(${cols}, ${cell}px)`,
+            zIndex: 60,
+            borderRadius: 0,
+            transformOrigin: '50% 100%',
+            backfaceVisibility: 'hidden'
+          }}
+          animate={isOpen ? { y: -Math.round(cell * 1.6) } : { y: 0 }}
+          transition={{ type: 'spring' as const, stiffness: 320, damping: 26 }}
         >
-            <div className="bg-[#ff4757] px-8 py-3 border-4 border-black shadow-[6px_6px_0_black] -rotate-1">
-                <h2 className="font-['Press_Start_2P'] text-2xl text-white text-stroke-md">MYSTERY BOX</h2>
-            </div>
-            <div className="relative w-64 h-64 flex items-center justify-center">
-                <div className={`rays-container ${(state === 'preview' || state === 'claiming') ? 'opacity-100 scale-150' : 'opacity-0 scale-0'} transition-all duration-1000 bg-[conic-gradient(from_0deg_at_50%_50%,#feca57_0deg,transparent_60deg,transparent_300deg,#feca57_360deg)] w-full h-full rounded-full blur-xl`}></div>
-                <AnimatePresence mode="wait">
-                    {(state === 'preview' || state === 'claiming') ? (
-                        <motion.div 
-                            key="reward"
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1.5, rotate: 0 }}
-                            className="relative z-10 flex flex-col items-center gap-4"
-                        >
-                            <div className="text-7xl filter drop-shadow-[0_10px_0_rgba(0,0,0,0.5)] animate-bounce">
-                                {reward?.icon || '❓'}
-                            </div>
-                            <div className="bg-white border-2 border-black px-4 py-2 rounded font-bold text-black text-xs font-['Press_Start_2P'] text-center shadow-lg">
-                                {reward?.name || 'Unknown'}
-                            </div>
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="chest"
-                            className={`pixel-chest-container ${state === 'shaking' ? 'shake-hard' : 'animate-float'}`}
-                        >
-                            <div className="pixel-chest-art scale-[3.5]"></div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-            <div className="w-full px-8 flex flex-col gap-3">
-                {(state === 'preview' || state === 'claiming') ? (
-                     <div className="flex w-full gap-3">
-                        <motion.button 
-                            whileTap={{ scale: 0.95 }} 
-                            onClick={onCancel} 
-                            disabled={state === 'claiming'}
-                            className="flex-1 bg-white text-black py-4 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_#ccc] disabled:opacity-50"
-                        >
-                            BUANG
-                        </motion.button>
-                        <motion.button 
-                            whileTap={{ scale: 0.95 }} 
-                            onClick={onConfirm}
-                            disabled={state === 'claiming'}
-                            className="flex-[2] bg-[#2ecc71] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_black] flex flex-col items-center justify-center leading-tight disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {state === 'claiming' ? 'MEMPROSES...' : 'KLAIM (0.1 SUI)'}
-                        </motion.button>
-                    </div>
-                ) : (
-                    <motion.button
-                        onClick={onPlay}
-                        disabled={state === 'shaking'}
-                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                        className={`w-full py-4 border-4 border-black font-['Press_Start_2P'] text-xs shadow-[4px_4px_0_black] flex items-center justify-center gap-2
-                            ${state === 'shaking' ? 'bg-gray-400 text-gray-200 cursor-not-allowed' : 'bg-[#feca57] text-black hover:bg-yellow-400'}`}
-                    >
-                        {state === 'shaking' ? 'MEMBUKA...' : <><Sparkles size={16} /> BUKA PETI (0.1 SUI)</>}
-                    </motion.button>
-                )}
-                
-                <button 
-                    onClick={onBack}
-                    disabled={state === 'claiming' || state === 'shaking'}
-                    className="text-gray-400 font-['VT323'] text-xl hover:text-white underline decoration-dashed mt-4 disabled:opacity-0 transition-opacity"
-                >
-                    KEMBALI KE DASHBOARD
-                </button>
-            </div>
+          {renderRows(lidRows, 0)}
         </motion.div>
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: lidRows.length * cell,
+            display: 'grid',
+            gridTemplateColumns: `repeat(${cols}, ${cell}px)`,
+            zIndex: 55
+          }}
+        >
+          {hingeRow.split('').map((ch, idx) => {
+            const color = palette[ch] ?? 'transparent';
+            return (
+              <div
+                key={`hinge-${idx}`}
+                style={{
+                  width: cell,
+                  height: cell,
+                  backgroundColor: color,
+                  boxSizing: 'border-box',
+                  border: color === 'transparent' ? 'none' : '1px solid rgba(0,0,0,0.95)'
+                }}
+              />
+            );
+          })}
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: (lidRows.length + 1) * cell,
+            display: 'grid',
+            gridTemplateColumns: `repeat(${cols}, ${cell}px)`,
+            zIndex: 50,
+          }}
+        >
+          {renderRows(bodyRows, lidRows.length + 1)}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const RewardFloating = ({ icon, label, offsetBottom = 110 }: any) => {
+  const [landed, setLanded] = useState(false);
+
+  return (
+    <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: offsetBottom }}>
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 18, scale: 0.9 }}
+          animate={landed ? { opacity: 1, y: -6, scale: 1 } : { opacity: 1, y: -36, scale: 1.02 }}
+          transition={
+            landed
+              ? { duration: 0.6 }
+              : { duration: 0.7, times: [0, 0.6, 1] }
+          }
+          onAnimationComplete={() => {
+            if (!landed) setLanded(true);
+          }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}
+        >
+          <motion.div
+            animate={landed ? { y: [ -6, -12, -6 ] } : {}}
+            transition={landed ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' as const } : {}}
+            className="z-40 flex flex-col items-center gap-2"
+            style={{ transformOrigin: 'center' }}
+          >
+            <div style={{ fontSize: 32, filter: 'drop-shadow(0 6px 6px rgba(0,0,0,0.55))' }}>{icon || '❓'}</div>
+            {label && (
+              <div className="bg-white border-2 border-black px-3 py-1 rounded text-[10px] font-['Press_Start_2P'] text-black text-center shadow-[2px_2px_0_rgba(0,0,0,0.6)]">
+                {label}
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+};
+
+function GachaView({ state, reward, onPlay, onConfirm, onCancel, onBack }: any) {
+  const isOpenState = state === 'preview' || state === 'claiming';
+
+  return (
+    <motion.div
+      key="gacha"
+      initial="initial"
+      animate="in"
+      exit="out"
+      variants={pageVariants}
+      transition={pageTransition}
+      className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="w-full max-w-sm flex flex-col items-center gap-8 relative z-50"
+      >
+        <div className="bg-[#ff4757] px-8 py-3 border-4 border-white shadow-[6px_6px_0_black] -rotate-1">
+          <h2 className="font-['Press_Start_2P'] text-2xl text-white [text-shadow:_2px_2px_0_#000]">
+            MYSTERY BOX
+          </h2>
+        </div>
+        <div className="relative w-[320px] h-[260px] flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div
+              className={`w-64 h-64 rounded-full transition-all ${isOpenState ? 'opacity-100 scale-100' : 'opacity-0 scale-0'}`}
+              style={{
+                background: 'radial-gradient(circle, rgba(255,220,120,0.95) 0%, rgba(255,140,44,0.12) 45%, transparent 70%)',
+                filter: isOpenState ? 'blur(20px)' : 'blur(8px)',
+              }}
+            />
+          </div>
+          <div className="relative z-20 w-full h-full flex items-center justify-center">
+            <div className="chest-stage relative w-[260px] h-[160px] flex items-end justify-center">
+              <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 18 }}>
+                <PixelChest size={220} state={state} onClick={state === 'ready' ? onPlay : undefined} />
+              </div>
+              <AnimatePresence>
+                {isOpenState && reward && (
+                  <RewardFloating icon={reward.icon} label={reward.name} offsetBottom={120} />
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+        <div className="w-full px-8 flex flex-col gap-3">
+          {isOpenState ? (
+            <div className="flex w-full gap-3">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={onCancel}
+                disabled={state === 'claiming'}
+                className="flex-1 bg-white text-black py-4 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_#ccc] disabled:opacity-50"
+              >
+                BUANG
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={onConfirm}
+                disabled={state === 'claiming'}
+                className="flex-[2] bg-[#2ecc71] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_black] flex flex-col items-center justify-center leading-tight disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {state === 'claiming' ? 'MEMPROSES...' : 'KLAIM (0.1 SUI)'}
+              </motion.button>
+            </div>
+          ) : (
+            <motion.button
+              onClick={onPlay}
+              disabled={state === 'shaking'}
+              whileHover={state === 'shaking' ? {} : { scale: 1.05 }}
+              whileTap={state === 'shaking' ? {} : { scale: 0.95 }}
+              className={`w-full py-4 border-4 border-black font-['Press_Start_2P'] text-xs shadow-[4px_4px_0_black] flex items-center justify-center gap-2
+                ${
+                  state === 'shaking'
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-[#feca57] text-black hover:bg-yellow-400'
+                }`}
+            >
+              {state === 'shaking' ? (
+                'MEMBUKA...'
+              ) : (
+                <>
+                  <Sparkles size={16} /> BUKA PETI (0.1 SUI)
+                </>
+              )}
+            </motion.button>
+          )}
+          <button
+            onClick={onBack}
+            disabled={state === 'claiming' || state === 'shaking'}
+            className="text-gray-400 font-['VT323'] text-xl hover:text-white underline decoration-dashed mt-4 disabled:opacity-0 transition-opacity [text-shadow:_1px_1px_0_#000]"
+          >
+            KEMBALI KE DASHBOARD
+          </button>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -632,7 +1121,7 @@ function MapView({ gps, target, distance, canClaim, rerollTarget, setViewMode }:
             <span className="text-[10px] text-[#feca57] font-bold tracking-widest uppercase mb-[-2px] flex items-center gap-1">
                 <Crosshair size={10}/> JARAK TARGET
             </span>
-            <div className="font-['VT323'] text-4xl text-white leading-none">
+            <div className="font-['VT323'] text-4xl text-white leading-none [text-shadow:_2px_2px_0_#000]">
               {distance ? distance.toFixed(0) : '--'}<span className="text-sm text-gray-400 ml-1">m</span>
             </div>
           </div>
@@ -640,7 +1129,7 @@ function MapView({ gps, target, distance, canClaim, rerollTarget, setViewMode }:
         <motion.button
           whileHover={{ scale: 1.1, rotate: 180 }} whileTap={{ scale: 0.9 }}
           onClick={rerollTarget}
-          className="absolute top-24 right-4 z-[1000] bg-white text-black p-3 rounded-xl border-2 border-black shadow-[4px_4px_0_black] active:shadow-none"
+          className="absolute top-24 right-4 z-[1000] bg-white text-black p-3 rounded-xl border-2 border-black shadow-[4px_4px_0 black] active:shadow-none"
           title="Cari Target Baru"
         >
           <RefreshCw size={20} />
@@ -648,11 +1137,11 @@ function MapView({ gps, target, distance, canClaim, rerollTarget, setViewMode }:
       </div>
       <motion.div 
          initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 20 }}
-         className="bg-[#f5f6fa] border-t-4 border-black p-6 z-50 relative shadow-[0_-10px_40px_rgba(0,0,0,0.5)] rounded-t-3xl"
+         className="bg-[#f5f6fa] border-t-4 border-black p-6 z-50 relative shadow-[0_-10px_40px rgba(0,0,0,0.5)] rounded-t-3xl"
       >
         <div className="flex justify-between items-center mb-6 px-1">
           <div>
-              <h3 className="font-['VT323'] text-3xl text-black font-bold leading-none">RADAR</h3>
+              <h3 className="font-['VT323'] text-3xl text-black font-bold leading-none [text-shadow:_1px_1px_0_#ccc]">RADAR</h3>
               <p className="text-xs text-gray-500 font-sans font-bold">Cari Monster & Item Langka</p>
           </div>
           <div className={`px-4 py-1 rounded-full border-2 border-black text-xs font-bold uppercase tracking-wider ${canClaim ? 'bg-green-400 text-black animate-pulse' : 'bg-gray-300 text-gray-500'}`}>
@@ -716,7 +1205,7 @@ function ARView({ onCatch, isMinting, onClose }: any) {
                     className="cursor-pointer relative group"
                     onClick={onCatch}
                 >
-                    <div className="ghost-body scale-[3.5] filter drop-shadow-[0_0_30px_rgba(255,255,255,0.8)] border-4 border-white">
+                    <div className="ghost-body scale-[3.5] filter drop-shadow-[0_0_30px rgba(255,255,255,0.8)] border-4 border-white">
                     <div className="ghost-face" />
                     <div className="ghost-skirt" />
                     </div>
@@ -731,7 +1220,7 @@ function ARView({ onCatch, isMinting, onClose }: any) {
                     whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                     disabled={isMinting}
                     onClick={onCatch}
-                    className="bg-green-500 w-full max-w-xs py-4 rounded-xl border-4 border-white font-bold text-xl shadow-lg active:scale-95 disabled:opacity-50 font-['VT323'] hover:bg-green-400 text-white"
+                    className="bg-green-500 w-full max-w-xs py-4 rounded-xl border-4 border-white font-bold text-xl shadow-lg active:scale-95 disabled:opacity-50 font-['VT323'] hover:bg-green-400 text-white [text-shadow:_2px_2px_0_#000]"
                 >
                     {isMinting ? 'MENANGKAP...' : 'TANGKAP PET INI!'}
                 </motion.button>
@@ -776,10 +1265,10 @@ function IntroScene({ account, isPending, refetch }: any) {
             <div className="relative z-20 flex flex-col items-center w-full px-6">
                 <div className="pixel-egg-container mb-8 scale-150"><div className="pixel-egg-bg"></div><div className="pixel-egg-art"></div></div>
                 <div className="mb-8 transform -rotate-2">
-                    <h1 className="font-['Press_Start_2P'] text-3xl text-white text-stroke-md text-center leading-relaxed">SUI PET GO</h1>
+                    <h1 className="font-['Press_Start_2P'] text-3xl text-white [text-shadow:_3px_3px_0_#000] text-center leading-relaxed">SUI PET GO</h1>
                 </div>
                 
-                <div className="animate-pulse text-sm font-bold tracking-widest text-blue-300 bg-black/60 px-4 py-2 rounded font-['VT323'] border border-blue-500/30 uppercase">
+                <div className="animate-pulse text-sm font-bold tracking-widest text-blue-300 bg-black/60 px-4 py-2 rounded font-['VT323'] border border-blue-500/30 uppercase [text-shadow:_1px_1px_0_#000]">
                     Menunggu Koneksi Wallet...
                 </div>
             </div>
@@ -793,8 +1282,8 @@ function IntroScene({ account, isPending, refetch }: any) {
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="pixel-card p-8 w-full max-w-sm flex flex-col gap-6 items-center relative z-20">
             <div className="pixel-egg-container scale-75 h-20"><div className="pixel-egg-bg"></div><div className="pixel-egg-art"></div></div>
             <div className="text-center">
-                <h2 className="text-3xl font-['VT323'] tracking-widest leading-none text-black">PARTNER BARU</h2>
-                <p className="text-xs text-gray-500 font-mono mt-1">Siapa nama teman barumu?</p>
+                <h2 className="text-3xl font-['VT323'] tracking-widest leading-none text-white [text-shadow:_2px_2px_0_#000]">PARTNER BARU</h2>
+                <p className="text-xs text-gray-300 font-mono mt-1 [text-shadow:_1px_1px_0_#000]">Siapa nama teman barumu?</p>
             </div>
             <input
                 value={petName}
@@ -808,7 +1297,7 @@ function IntroScene({ account, isPending, refetch }: any) {
                 disabled={!petName}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-full bg-[#2ecc71] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-xs shadow-[4px_4px_0_black] transition-all disabled:opacity-50 disabled:cursor-not-allowed hover-shake relative"
+                className="w-full bg-[#2ecc71] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-xs shadow-[4px_4px_0_black] transition-all disabled:opacity-50 disabled:cursor-not-allowed hover-shake relative [text-shadow:_1px_1px_0_#000]"
             >
                 LANJUT
             </motion.button>
@@ -823,7 +1312,7 @@ function IntroScene({ account, isPending, refetch }: any) {
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
     >
         <div className="pixel-card w-full max-w-sm p-6 flex flex-col items-center relative">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#feca57] border-4 border-black px-4 py-1 text-xs font-bold font-['Press_Start_2P'] text-black shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#feca57] border-4 border-black px-4 py-1 text-xs font-bold font-['Press_Start_2P'] text-black shadow-[4px_4px_0 rgba(0,0,0,0.5)]">
                 KONFIRMASI
             </div>
 
@@ -833,8 +1322,8 @@ function IntroScene({ account, isPending, refetch }: any) {
             </div>
 
             <div className="text-center mb-8">
-                <p className="text-gray-500 text-xs font-mono mb-2">KAMU AKAN MENGADOPSI:</p>
-                <h2 className="text-4xl font-['VT323'] text-black font-bold uppercase tracking-widest leading-none">
+                <p className="text-gray-300 text-xs font-mono mb-2 [text-shadow:_1px_1px_0_#000]">KAMU AKAN MENGADOPSI:</p>
+                <h2 className="text-4xl font-['VT323'] text-white font-bold uppercase tracking-widest leading-none [text-shadow:_2px_2px_0_#000]">
                     {petName}
                 </h2>
             </div>
@@ -851,7 +1340,7 @@ function IntroScene({ account, isPending, refetch }: any) {
                     onClick={handleMint}
                     disabled={isMinting}
                     whileTap={{ scale: 0.95 }}
-                    className="flex-[2] bg-[#ff4757] text-white py-3 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_black] flex flex-col items-center justify-center leading-tight"
+                    className="flex-[2] bg-[#ff4757] text-white py-3 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_black] flex flex-col items-center justify-center leading-tight [text-shadow:_1px_1px_0_#000]"
                 >
                     {isMinting ? 'MINTING...' : 'CLAIM (GAS FEE)'}
                 </motion.button>
@@ -867,7 +1356,7 @@ function InventoryModal({ isOpen, onClose, items, onUse }: any) {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm">
         <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, y: 20 }} className="pixel-card p-0 w-full max-w-sm overflow-hidden">
             <div className="bg-[#ff4757] p-4 border-b-4 border-black flex justify-between items-center text-white">
-                <h2 className="font-['VT323'] text-3xl tracking-widest">TAS BEKAL</h2>
+                <h2 className="font-['VT323'] text-3xl tracking-widest [text-shadow:_2px_2px_0_#000]">TAS BEKAL</h2>
                 <button onClick={onClose} className="hover:rotate-90 transition-transform"><X size={24}/></button>
             </div>
             <div className="p-4 max-h-[60vh] overflow-y-auto bg-[#f5f6fa] text-black">
@@ -905,7 +1394,7 @@ function PixelButtonSmall({ color, icon, onClick }: any) {
             whileHover={{ scale: 1.05, filter: "brightness(1.1)" }}
             whileTap={{ scale: 0.9, y: 4, boxShadow: "0px 0px 0px rgba(0,0,0,0)" }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            className={`w-full aspect-square ${color} border-2 border-black rounded-xl flex items-center justify-center shadow-[0px_4px_0px_black] text-black relative overflow-hidden`}
+            className={`w-full aspect-square ${color} border-2 border-black rounded-xl flex items-center justify-center shadow-[0px_4px_0px_black] text-white relative overflow-hidden`}
         >
             <motion.div className="absolute inset-0 bg-white opacity-0" whileHover={{ opacity: 0.2, x: [-100, 100], transition: { duration: 0.5 } }} style={{ skewX: -20 }} />
             <div className="relative z-10">{icon}</div>
@@ -917,12 +1406,12 @@ function StatusBar({ label, value, color, icon }: any) {
     const percentage = Math.min(100, Math.max(0, value));
     return (
       <div className="flex items-center gap-2 mb-1">
-        <div className="w-12 text-xs font-bold text-gray-500 flex items-center gap-1">{icon} {label}</div>
-        <div className="flex-1 h-3 bg-gray-300 rounded-full border border-black overflow-hidden relative">
+        <div className="w-12 text-xs font-bold text-white flex items-center gap-1 [text-shadow:_1px_1px_0_#000]">{icon} {label}</div>
+        <div className="flex-1 h-3 bg-gray-700 rounded-full border border-white overflow-hidden relative">
           <motion.div initial={{ width: 0 }} animate={{ width: `${percentage}%` }} className={`h-full ${color} absolute left-0 top-0`} />
           <div className="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36zwjjgzhhZWGMYAEYB8RmROaABADeOQ8CXl/xfgAAAABJRU5ErkJggg==')] opacity-20 pointer-events-none" />
         </div>
-        <div className="w-8 text-right font-mono text-xs font-bold text-black">{value}</div>
+        <div className="w-8 text-right font-mono text-xs font-bold text-white [text-shadow:_1px_1px_0_#000]">{value}</div>
       </div>
     );
 }
