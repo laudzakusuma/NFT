@@ -11,6 +11,8 @@ import dragonEpic from '../public/monsters/dragon_epic.png';
 import dragonLegendary from '../public/monsters/dragon_legendary.png';
 import { ConnectButton } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
+import pixelEggImage from '../public/pixel_egg.png';
+import monsterLogo from '../public/monsterlogo.png';
 import { useState, useEffect } from 'react';
 import { PET_TYPE, PACKAGE_ID, SHOP_ID, FOOD_TYPE } from '../utils/contracts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,11 +29,20 @@ import {
   CheckCircle,
   Gift,
   Sparkles,
-  Zap,
   Crosshair
 } from 'lucide-react';
 import Webcam from 'react-webcam';
 import dynamic from 'next/dynamic';
+
+const pixelPattern = {
+  backgroundImage: `url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAB5JREFUGFdjTIm//58BDJikmRgwAaZGpqR///8DABwTE/3U621XAAAAAElFTkSuQmCC")`,
+  backgroundSize: '4px 4px',
+  imageRendering: 'pixelated' as const
+};
+
+const cBase = "#4d1e1e";
+const cMid  = "#8a4f4f";
+const cHigh = "#dfb6a9";
 
 const GameMap = dynamic(() => import('../components/GameMap'), {
   ssr: false,
@@ -185,6 +196,105 @@ const AnimatedMonsterImage = ({ type, action }: { type: number, action: string }
             e.currentTarget.src = 'https://img.icons8.com/color/512/dragon.png';
           }}
         />
+    </div>
+  );
+};
+
+const HatchingScene = ({ onComplete }: { onComplete: () => void }) => {
+  const [stage, setStage] = useState<'egg' | 'crack' | 'hatch'>('egg');
+
+  useEffect(() => {
+    // Sequence animasi
+    const sequence = async () => {
+      // 1. Tunggu sebentar (Telur Diam)
+      await new Promise(r => setTimeout(r, 1000));
+      
+      // 2. Telur Retak
+      setStage('crack');
+      await new Promise(r => setTimeout(r, 2000)); // Durasi retak & getar
+
+      // 3. Menetas
+      setStage('hatch');
+      await new Promise(r => setTimeout(r, 2500)); // Durasi monster lompat
+
+      // 4. Selesai
+      onComplete();
+    };
+    sequence();
+  }, [onComplete]);
+
+  // Animasi Getar
+  const shakeVariant = {
+    egg: { rotate: 0 },
+    crack: { 
+      rotate: [-5, 5, -5, 5, 0],
+      x: [-2, 2, -2, 2, 0],
+      transition: { repeat: 3, duration: 0.5 } 
+    },
+    hatch: { scale: 0, opacity: 0, transition: { duration: 0.2 } }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full w-full bg-black z-50 fixed inset-0">
+      <div className="relative w-64 h-64 flex items-center justify-center">
+        
+        {/* CAHAYA LEDAKAN (Hanya muncul saat hatch) */}
+        {stage === 'hatch' && (
+           <motion.div 
+             initial={{ scale: 0, opacity: 1 }}
+             animate={{ scale: 15, opacity: 0 }}
+             transition={{ duration: 0.8 }}
+             className="absolute inset-0 bg-white rounded-full z-10"
+           />
+        )}
+
+        {/* MONSTER YANG MUNCUL (Disembunyikan sampai stage hatch) */}
+        <motion.div
+           initial={{ scale: 0, y: 50 }}
+           animate={stage === 'hatch' ? { scale: 1, y: 0 } : {}}
+           transition={{ type: "spring", bounce: 0.6, delay: 0.1 }}
+           className="absolute z-20"
+        >
+           {/* Simple CSS/SVG Pixel Monster */}
+           <svg width="120" height="120" viewBox="0 0 12 12" shapeRendering="crispEdges">
+             <path fill="#4ade80" d="M4 2h4v1h-4zM3 3h6v1h-6zM2 4h8v5h-8zM2 9h2v2h-2zM8 9h2v2h-2z" />
+             <path fill="#000" d="M3 5h2v2h-2zM7 5h2v2h-2zM4 7h4v1h-4z" /> 
+             {/* Tanduk */}
+             <path fill="#fef08a" d="M2 2h1v2h-1zM9 2h1v2h-1z" />
+           </svg>
+        </motion.div>
+
+        {/* TELUR */}
+        <motion.div
+          variants={shakeVariant}
+          animate={stage}
+          className="absolute z-30"
+        >
+           {/* Simple CSS/SVG Pixel Egg */}
+           <svg width="140" height="160" viewBox="0 0 14 16" shapeRendering="crispEdges">
+             {/* Cangkang Luar (Putih/Krem) */}
+             <path fill="#fef3c7" d="M5 1h4v1h2v2h2v8h-2v2h-2v1h-4v-1h-2v-2h-2v-8h2v-2h2z" />
+             {/* Garis Retakan (Hanya muncul saat crack) */}
+             {stage !== 'egg' && (
+                <path fill="#000" d="M6 3h1v1h1v1h-1v1h1v1h-1v1h-1v-1h-1v-1h1v-1h-1v-1h1z" />
+             )}
+             {/* Shadow Bawah */}
+             <path fill="rgba(0,0,0,0.2)" d="M4 11h6v1h-6zM3 12h8v1h-8z" />
+           </svg>
+        </motion.div>
+
+        {/* TEXT STATUS */}
+        <div className="absolute -bottom-20 w-full text-center">
+            <motion.p 
+              key={stage}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="font-['Press_Start_2P'] text-yellow-400 text-xs animate-pulse"
+            >
+              {stage === 'egg' ? 'MENERIMA DATA...' : stage === 'crack' ? 'TELUR BERGETAR!' : 'MENETAS!!'}
+            </motion.p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -536,16 +646,16 @@ export default function Home() {
   );
 }
 
-const pixelPattern = {
-  backgroundImage: `url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAB5JREFUGFdjTIm//58BDJikmRgwAaZGpqR///8DABwTE/3U621XAAAAAElFTkSuQmCC")`,
-  backgroundSize: '4px 4px',
-  imageRendering: 'pixelated' as const
-};
-
-const cBase = "#4d1e1e";
-const cMid  = "#8a4f4f";
-const cHigh = "#dfb6a9";
-
+const PixelCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+  <motion.div 
+    initial={{ scale: 0.95, opacity: 0 }}
+    animate={{ scale: 1, opacity: 1 }}
+    // Background gelap, border putih tebal, dan shadow keras
+    className={`relative bg-[#1a1a2e] border-[6px] border-white p-8 shadow-[8px_8px_0_rgba(0,0,0,0.5)] ${className}`}
+  >
+    {children}
+  </motion.div>
+);
 const CloudPuff = ({ className, width, height, color, scale = 1, opacity = 1 }: any) => {
   return (
     <div 
@@ -1235,9 +1345,15 @@ function IntroScene({ account, isPending, refetch }: any) {
   const [petName, setPetName] = useState('');
   const [isMinting, setIsMinting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  
+  // STATE BARU: Apakah animasi menetas sudah selesai?
+  const [hatchComplete, setHatchComplete] = useState(false);
+
   const handleMint = () => {
+    if (!petName.trim()) return;
     setIsMinting(true);
     const tx = new Transaction();
+    
     tx.moveCall({
       target: `${PACKAGE_ID}::core::mint_pet`,
       arguments: [tx.pure.string(petName), tx.object('0x6')],
@@ -1251,88 +1367,145 @@ function IntroScene({ account, isPending, refetch }: any) {
             setShowConfirm(false); 
             refetch(); 
         },
-        onError: () => setIsMinting(false),
+        onError: (err) => {
+            console.error(err);
+            setIsMinting(false);
+        },
       },
     );
   };
 
-  if (!showConfirm) {
-    if (!account) {
-        return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-full w-full relative overflow-hidden">
-            <div className="absolute inset-0 opacity-20 bg-[size:40px_40px] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] pointer-events-none" />
-            <div className="absolute inset-0 crt-overlay z-10" />
-            <div className="relative z-20 flex flex-col items-center w-full px-6">
-                <div className="pixel-egg-container mb-8 scale-150"><div className="pixel-egg-bg"></div><div className="pixel-egg-art"></div></div>
-                <div className="mb-8 transform -rotate-2">
-                    <h1 className="font-['Press_Start_2P'] text-3xl text-white [text-shadow:_3px_3px_0_#000] text-center leading-relaxed">SUI PET GO</h1>
-                </div>
-                
-                <div className="animate-pulse text-sm font-bold tracking-widest text-blue-300 bg-black/60 px-4 py-2 rounded font-['VT323'] border border-blue-500/30 uppercase [text-shadow:_1px_1px_0_#000]">
-                    Menunggu Koneksi Wallet...
-                </div>
-            </div>
-          </motion.div>
-        );
-    }
-
-    if (isPending) return <div className="text-white animate-pulse font-['VT323'] text-2xl">MEMUAT DATA...</div>;
-
+  // 1. Tampilan Belum Connect Wallet (Tampilan Awal)
+  if (!account) {
     return (
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="pixel-card p-8 w-full max-w-sm flex flex-col gap-6 items-center relative z-20">
-            <div className="pixel-egg-container scale-75 h-20"><div className="pixel-egg-bg"></div><div className="pixel-egg-art"></div></div>
-            <div className="text-center">
-                <h2 className="text-3xl font-['VT323'] tracking-widest leading-none text-white [text-shadow:_2px_2px_0_#000]">PARTNER BARU</h2>
-                <p className="text-xs text-gray-300 font-mono mt-1 [text-shadow:_1px_1px_0_#000]">Siapa nama teman barumu?</p>
-            </div>
-            <input
-                value={petName}
-                onChange={(e) => setPetName(e.target.value)}
-                placeholder="NAMA PET..."
-                maxLength={12}
-                className="w-full border-4 border-black p-3 font-['Press_Start_2P'] text-sm text-center outline-none focus:bg-yellow-50 text-black uppercase placeholder:text-gray-300"
-            />
-            <motion.button
-                onClick={() => setShowConfirm(true)}
-                disabled={!petName}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-full bg-[#2ecc71] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-xs shadow-[4px_4px_0_black] transition-all disabled:opacity-50 disabled:cursor-not-allowed hover-shake relative [text-shadow:_1px_1px_0_#000]"
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-full w-full relative overflow-hidden bg-slate-900">
+        <div className="absolute inset-0 opacity-20 bg-[size:40px_40px] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] pointer-events-none" />
+        
+        <div className="relative z-20 flex flex-col items-center w-full px-6 gap-8">
+            <motion.div 
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
             >
-                LANJUT
-            </motion.button>
-        </motion.div>
+                {/* Menggunakan pixel egg yg lama hanya untuk cover depan */}
+                <img 
+                    src={pixelEggImage.src} 
+                    alt="Pixel Egg" 
+                    className="w-full h-full object-contain scale-125"
+                    style={{ imageRendering: 'pixelated' }}
+                />
+            </motion.div>
+            
+            <div className="transform -rotate-2">
+                <h1 className="font-['Press_Start_2P'] text-4xl text-[#feca57] [text-shadow:_4px_4px_0_#000] text-center leading-relaxed stroke-black">
+                    SUI PET GO
+                </h1>
+            </div>
+            
+            <div className="scale-110 hover:scale-115 transition-transform duration-200">
+                <ConnectButton 
+                    className="!bg-[#ff4757] !text-white !font-['Press_Start_2P'] !text-[10px] !py-4 !px-8 !border-4 !border-black !shadow-[4px_4px_0_black] !rounded-none hover:!bg-[#ff6b81] active:!translate-y-1 active:!shadow-none transition-all uppercase" 
+                />
+            </div>
+        </div>
+      </motion.div>
     );
   }
 
+  // 2. LOGIKA BARU: Jika sudah connect TAPI belum menetas -> Jalankan Hatching Scene
+  if (account && !hatchComplete) {
+     return <HatchingScene onComplete={() => setHatchComplete(true)} />;
+  }
+
+  // 3. Loading State saat cek Pet (Hanya muncul kalau data pet sedang diambil di background)
+  if (isPending && !showConfirm) return (
+      <div className="flex flex-col items-center justify-center h-full bg-black/80 backdrop-blur-sm absolute inset-0 z-50">
+          <div className="w-16 h-16 border-4 border-[#feca57] border-t-transparent rounded-full animate-spin mb-4"></div>
+      </div>
+  );
+
+  // 4. Form Input Nama (PARTNER BARU) - Ini yang akan muncul SETELAH animasi menetas
+  if (!showConfirm) {
+    return (
+        <div className="flex items-center justify-center h-full w-full p-4">
+            <PixelCard className="w-full max-w-sm flex flex-col gap-6 items-center z-20">
+                
+                {/* Logo Monster (Hasil Hatching) */}
+                <div>
+                     <div className="absolute inset-0 bg-blue-500/20 animate-pulse"></div>
+                     <svg width="80" height="80" viewBox="0 0 12 12" shapeRendering="crispEdges" className="animate-bounce">
+                        <path fill="#4ade80" d="M4 2h4v1h-4zM3 3h6v1h-6zM2 4h8v5h-8zM2 9h2v2h-2zM8 9h2v2h-2z" />
+                        <path fill="#000" d="M3 5h2v2h-2zM7 5h2v2h-2zM4 7h4v1h-4z" /> 
+                        <path fill="#fef08a" d="M2 2h1v2h-1zM9 2h1v2h-1z" />
+                     </svg>
+                </div>
+                
+                <div className="text-center w-full">
+                    <h2 className="text-4xl font-['VT323'] tracking-widest leading-none text-white [text-shadow:_2px_2px_0_#000] mb-2">
+                        PARTNER BARU
+                    </h2>
+                    <p className="text-sm text-gray-300 font-mono [text-shadow:_1px_1px_0_#000]">
+                        Monster liar menetas! Beri dia nama.
+                    </p>
+                </div>
+
+                <div className="w-full">
+                    <input
+                        autoFocus
+                        value={petName}
+                        onChange={(e) => setPetName(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => e.key === 'Enter' && petName && setShowConfirm(true)}
+                        placeholder="NAMA PET..."
+                        maxLength={12}
+                        className="w-full bg-[#fffbeb] border-4 border-black p-4 font-['Press_Start_2P'] text-sm text-center text-black placeholder:text-gray-400 shadow-[inset_4px_4px_0_rgba(0,0,0,0.1)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow-400/50 transition-all"
+                    />
+                </div>
+
+                <motion.button
+                    onClick={() => setShowConfirm(true)}
+                    disabled={!petName}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-full bg-[#2ecc71] hover:bg-[#27ae60] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-xs shadow-[4px_4px_0_black] active:shadow-none active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed [text-shadow:_1px_1px_0_#000]"
+                >
+                    LANJUT
+                </motion.button>
+            </PixelCard>
+        </div>
+    );
+  }
+
+  // 5. Modal Konfirmasi (Tetap sama)
   return (
     <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }} 
-        animate={{ opacity: 1, scale: 1 }} 
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
     >
-        <div className="pixel-card w-full max-w-sm p-6 flex flex-col items-center relative">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#feca57] border-4 border-black px-4 py-1 text-xs font-bold font-['Press_Start_2P'] text-black shadow-[4px_4px_0 rgba(0,0,0,0.5)]">
+        <PixelCard className="w-full max-w-sm p-8 flex flex-col items-center">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#feca57] border-4 border-black px-6 py-2 text-xs font-bold font-['Press_Start_2P'] text-black shadow-[4px_4px_0 rgba(0,0,0,0.5)]">
                 KONFIRMASI
             </div>
 
-            <div className="mt-8 mb-6 pixel-egg-container scale-125">
-                <div className="pixel-egg-bg"></div>
-                <div className="pixel-egg-art"></div>
+            <div className="mt-8 mb-6 scale-150 p-4">
+                 <svg width="60" height="60" viewBox="0 0 12 12" shapeRendering="crispEdges">
+                    <path fill="#4ade80" d="M4 2h4v1h-4zM3 3h6v1h-6zM2 4h8v5h-8zM2 9h2v2h-2zM8 9h2v2h-2z" />
+                    <path fill="#000" d="M3 5h2v2h-2zM7 5h2v2h-2zM4 7h4v1h-4z" /> 
+                    <path fill="#fef08a" d="M2 2h1v2h-1zM9 2h1v2h-1z" />
+                 </svg>
             </div>
 
-            <div className="text-center mb-8">
-                <p className="text-gray-300 text-xs font-mono mb-2 [text-shadow:_1px_1px_0_#000]">KAMU AKAN MENGADOPSI:</p>
-                <h2 className="text-4xl font-['VT323'] text-white font-bold uppercase tracking-widest leading-none [text-shadow:_2px_2px_0_#000]">
+            <div className="text-center mb-8 w-full">
+                <p className="text-gray-400 text-xs font-mono mb-2 uppercase tracking-widest">Kamu akan mengadopsi:</p>
+                <h2 className="text-5xl font-['VT323'] text-[#feca57] font-bold uppercase tracking-widest leading-none [text-shadow:_2px_2px_0_#000] break-words">
                     {petName}
                 </h2>
             </div>
 
-            <div className="w-full flex gap-3">
+            <div className="w-full flex gap-4">
                 <motion.button 
                     onClick={() => setShowConfirm(false)}
                     whileTap={{ scale: 0.95 }}
-                    className="flex-1 bg-white text-black py-3 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_#ccc]"
+                    className="flex-1 bg-white text-black py-4 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_#ccc] hover:bg-gray-100"
                 >
                     BATAL
                 </motion.button>
@@ -1340,50 +1513,74 @@ function IntroScene({ account, isPending, refetch }: any) {
                     onClick={handleMint}
                     disabled={isMinting}
                     whileTap={{ scale: 0.95 }}
-                    className="flex-[2] bg-[#ff4757] text-white py-3 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_black] flex flex-col items-center justify-center leading-tight [text-shadow:_1px_1px_0_#000]"
+                    className="flex-[2] bg-[#ff4757] hover:bg-[#ff2e43] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-[10px] shadow-[4px_4px_0_black] flex flex-col items-center justify-center leading-tight [text-shadow:_1px_1px_0_#000] disabled:grayscale"
                 >
                     {isMinting ? 'MINTING...' : 'CLAIM (GAS FEE)'}
                 </motion.button>
             </div>
-        </div>
+        </PixelCard>
     </motion.div>
   );
 }
 
 function InventoryModal({ isOpen, onClose, items, onUse }: any) {
-  if (!isOpen) return null;
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm">
-        <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, y: 20 }} className="pixel-card p-0 w-full max-w-sm overflow-hidden">
-            <div className="bg-[#ff4757] p-4 border-b-4 border-black flex justify-between items-center text-white">
-                <h2 className="font-['VT323'] text-3xl tracking-widest [text-shadow:_2px_2px_0_#000]">TAS BEKAL</h2>
-                <button onClick={onClose} className="hover:rotate-90 transition-transform"><X size={24}/></button>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: 20 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm bg-gradient-to-br from-gray-900 to-black p-6 border-4 border-white rounded-2xl shadow-[0_0_50px rgba(0,255,255,0.3)]"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-['VT323'] text-2xl text-white [text-shadow:_2px_2px_0_#000]">INVENTORY</h2>
+              <button onClick={onClose} className="text-white hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
             </div>
-            <div className="p-4 max-h-[60vh] overflow-y-auto bg-[#f5f6fa] text-black">
-                {items.length === 0 ? (
-                    <div className="text-center py-10 opacity-50 font-mono text-sm text-gray-500">
-                        <div className="text-4xl mb-2">🕸️</div>
-                        Tas kosong melompong.<br/>Mainkan Gacha untuk dapat item!
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {items.map((f: any) => (
-                            <div key={f.data?.objectId} className="flex items-center justify-between bg-white border-2 border-black p-2 rounded-lg shadow-[2px_2px_0_#ccc]">
-                                <div className="flex items-center gap-3">
-                                    <div className="text-2xl bg-yellow-100 p-2 rounded border border-black">🍗</div>
-                                    <div>
-                                        <p className="font-bold font-['VT323'] text-xl leading-none">Nugget</p>
-                                        <p className="text-[10px] text-gray-500 font-bold flex items-center gap-1"><Zap size={10}/> ENERGI +50</p>
-                                    </div>
-                                </div>
-                                <motion.button whileTap={{ scale: 0.95 }} className="bg-green-500 text-white px-3 py-1 rounded border-2 border-black text-sm font-bold hover:bg-green-400 active:translate-y-1 shadow-[0_2px_0_#14532d]" onClick={() => onUse(f.data?.objectId)}>MAKAN</motion.button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+            
+            {items.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <p className="font-['VT323'] text-sm">Tas kosong...</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {items.map((item: any, idx: number) => (
+                  <motion.button
+                    key={idx}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onUse(item.data?.objectId)}
+                    className="w-full bg-white/10 hover:bg-white/20 border-2 border-white/30 p-3 rounded-lg flex justify-between items-center transition-all text-left"
+                  >
+                    <span className="font-['VT323'] text-white text-sm">🍗 ITEM #{idx + 1}</span>
+                    <span className="text-xs text-green-400 font-bold">GUNAKAN</span>
+                  </motion.button>
+                ))}
+              </div>
+            )}
+            
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onClose}
+              className="w-full mt-6 bg-gray-700 hover:bg-gray-600 border-2 border-white p-3 rounded-lg font-['VT323'] text-white transition-colors"
+            >
+              TUTUP
+            </motion.button>
+          </motion.div>
         </motion.div>
-    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
