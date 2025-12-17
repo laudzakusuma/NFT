@@ -12,7 +12,6 @@ import dragonLegendary from '../public/monsters/dragon_legendary.png';
 import { ConnectButton } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 import pixelEggImage from '../public/pixel_egg.png';
-import monsterLogo from '../public/monsterlogo.png';
 import { useState, useEffect } from 'react';
 import { PET_TYPE, PACKAGE_ID, SHOP_ID, FOOD_TYPE } from '../utils/contracts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -94,6 +93,8 @@ interface PetFields {
   level: number;
   hunger: number;
   happiness: number;
+  xp: number;
+  rarity: number;
 }
 
 interface GachaReward {
@@ -134,11 +135,15 @@ function generateTarget(lat: number, lng: number): Target {
   };
 }
 
+const getImgSrc = (img: any) => {
+  return typeof img === 'string' ? img : img.src;
+};
+
 const MONSTER_IMAGE_PATHS = [
-  (dragonCommon as any).src,
-  (dragonRare as any).src,
-  (dragonEpic as any).src,
-  (dragonLegendary as any).src,
+  getImgSrc(dragonCommon),
+  getImgSrc(dragonRare),
+  getImgSrc(dragonEpic),
+  getImgSrc(dragonLegendary),
 ];
 
 const AnimatedMonsterImage = ({ type, action }: { type: number, action: string }) => {
@@ -204,26 +209,20 @@ const HatchingScene = ({ onComplete }: { onComplete: () => void }) => {
   const [stage, setStage] = useState<'egg' | 'crack' | 'hatch'>('egg');
 
   useEffect(() => {
-    // Sequence animasi
     const sequence = async () => {
-      // 1. Tunggu sebentar (Telur Diam)
       await new Promise(r => setTimeout(r, 1000));
       
-      // 2. Telur Retak
       setStage('crack');
-      await new Promise(r => setTimeout(r, 2000)); // Durasi retak & getar
+      await new Promise(r => setTimeout(r, 2000));
 
-      // 3. Menetas
       setStage('hatch');
-      await new Promise(r => setTimeout(r, 2500)); // Durasi monster lompat
+      await new Promise(r => setTimeout(r, 2500));
 
-      // 4. Selesai
       onComplete();
     };
     sequence();
   }, [onComplete]);
 
-  // Animasi Getar
   const shakeVariant = {
     egg: { rotate: 0 },
     crack: { 
@@ -237,8 +236,6 @@ const HatchingScene = ({ onComplete }: { onComplete: () => void }) => {
   return (
     <div className="flex flex-col items-center justify-center h-full w-full bg-black z-50 fixed inset-0">
       <div className="relative w-64 h-64 flex items-center justify-center">
-        
-        {/* CAHAYA LEDAKAN (Hanya muncul saat hatch) */}
         {stage === 'hatch' && (
            <motion.div 
              initial={{ scale: 0, opacity: 1 }}
@@ -248,42 +245,31 @@ const HatchingScene = ({ onComplete }: { onComplete: () => void }) => {
            />
         )}
 
-        {/* MONSTER YANG MUNCUL (Disembunyikan sampai stage hatch) */}
         <motion.div
            initial={{ scale: 0, y: 50 }}
            animate={stage === 'hatch' ? { scale: 1, y: 0 } : {}}
            transition={{ type: "spring", bounce: 0.6, delay: 0.1 }}
            className="absolute z-20"
         >
-           {/* Simple CSS/SVG Pixel Monster */}
            <svg width="120" height="120" viewBox="0 0 12 12" shapeRendering="crispEdges">
              <path fill="#4ade80" d="M4 2h4v1h-4zM3 3h6v1h-6zM2 4h8v5h-8zM2 9h2v2h-2zM8 9h2v2h-2z" />
              <path fill="#000" d="M3 5h2v2h-2zM7 5h2v2h-2zM4 7h4v1h-4z" /> 
-             {/* Tanduk */}
              <path fill="#fef08a" d="M2 2h1v2h-1zM9 2h1v2h-1z" />
            </svg>
         </motion.div>
-
-        {/* TELUR */}
         <motion.div
           variants={shakeVariant}
           animate={stage}
           className="absolute z-30"
         >
-           {/* Simple CSS/SVG Pixel Egg */}
            <svg width="140" height="160" viewBox="0 0 14 16" shapeRendering="crispEdges">
-             {/* Cangkang Luar (Putih/Krem) */}
              <path fill="#fef3c7" d="M5 1h4v1h2v2h2v8h-2v2h-2v1h-4v-1h-2v-2h-2v-8h2v-2h2z" />
-             {/* Garis Retakan (Hanya muncul saat crack) */}
              {stage !== 'egg' && (
                 <path fill="#000" d="M6 3h1v1h1v1h-1v1h1v1h-1v1h-1v-1h-1v-1h1v-1h-1v-1h1z" />
              )}
-             {/* Shadow Bawah */}
              <path fill="rgba(0,0,0,0.2)" d="M4 11h6v1h-6zM3 12h8v1h-8z" />
            </svg>
         </motion.div>
-
-        {/* TEXT STATUS */}
         <div className="absolute -bottom-20 w-full text-center">
             <motion.p 
               key={stage}
@@ -344,7 +330,7 @@ export default function Home() {
   const hasPet = petData?.data && petData.data.length > 0;
   const petObject = hasPet ? petData.data[0] : null;
   // @ts-ignore
-  const petFields = (petObject?.data?.content?.fields as PetFields) || { name: 'UNKNOWN', level: 1, hunger: 0, happiness: 0 };
+  const petFields = (petObject?.data?.content?.fields as PetFields) || { name: 'UNKNOWN', level: 1, hunger: 0, happiness: 0, xp: 0, rarity: 1 };
   const foodList = foodData?.data || [];
 
   const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -468,7 +454,7 @@ export default function Home() {
       () => {
         setPetAction('idle');
         refetchPet();
-        showToast('Pet kamu senang! (+EXP)', 'success');
+        showToast('Pet senang! (+20 XP)', 'success');
       }
     );
   };
@@ -488,7 +474,7 @@ export default function Home() {
         refetchFood();
         refetchPet();
         setPetAction('idle');
-        showToast('Nyam nyam! Kenyang.', 'success');
+        showToast('Nyam nyam! (+10 XP)', 'success');
       }
     );
   };
@@ -650,7 +636,6 @@ const PixelCard = ({ children, className = "" }: { children: React.ReactNode, cl
   <motion.div 
     initial={{ scale: 0.95, opacity: 0 }}
     animate={{ scale: 1, opacity: 1 }}
-    // Background gelap, border putih tebal, dan shadow keras
     className={`relative bg-[#1a1a2e] border-[6px] border-white p-8 shadow-[8px_8px_0_rgba(0,0,0,0.5)] ${className}`}
   >
     {children}
@@ -834,15 +819,15 @@ const LightningFlash = () => (
   />
 );
 
-function DashboardView({ petFields, petAction, setPetAction, handlePlay, setViewMode, setShowInventory, petId }: any) {
-  const monsterTypeIndex = petId ? parseInt(petId.slice(-1), 16) % 4 : 0;
+function DashboardView({ petFields, petAction, setPetAction, handlePlay, setViewMode, setShowInventory }: any) {
+  const monsterTypeIndex = (petFields.rarity > 0 ? petFields.rarity - 1 : 0);
   
   const monsterName = [
     'FOREST DRAGON',
     'GLACIER DRAGON',
-    'INFERNO DRAGON',
-    'ROYAL DRAGON'
-  ][monsterTypeIndex];
+    'INFERNO DRAGON', 
+    'ROYAL DRAGON',
+  ][monsterTypeIndex] || 'UNKNOWN PET';
 
   return (
     <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="relative h-full flex flex-col items-center justify-center p-4">
@@ -903,6 +888,7 @@ function DashboardView({ petFields, petAction, setPetAction, handlePlay, setView
                 <div className="bg-gray-900/80 p-4 rounded-xl border-2 border-white/30">
                     <StatusBar label="HP" value={petFields.hunger} color="bg-orange-500" icon={<Utensils size={14}/>} />
                     <StatusBar label="JOY" value={petFields.happiness} color="bg-pink-500" icon={<Heart size={14}/>} />
+                    <StatusBar label="EXP" value={petFields.xp} color="bg-blue-500" icon={<Sparkles size={14}/>} />
                 </div>
                 <div className="grid grid-cols-4 gap-3">
                     <PixelButtonSmall color="bg-blue-600" icon={<Gamepad2 size={24}/>} onClick={handlePlay} />
@@ -1345,8 +1331,6 @@ function IntroScene({ account, isPending, refetch }: any) {
   const [petName, setPetName] = useState('');
   const [isMinting, setIsMinting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  
-  // STATE BARU: Apakah animasi menetas sudah selesai?
   const [hatchComplete, setHatchComplete] = useState(false);
 
   const handleMint = () => {
@@ -1375,7 +1359,6 @@ function IntroScene({ account, isPending, refetch }: any) {
     );
   };
 
-  // 1. Tampilan Belum Connect Wallet (Tampilan Awal)
   if (!account) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-full w-full relative overflow-hidden bg-slate-900">
@@ -1386,9 +1369,8 @@ function IntroScene({ account, isPending, refetch }: any) {
                 animate={{ y: [0, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
             >
-                {/* Menggunakan pixel egg yg lama hanya untuk cover depan */}
                 <img 
-                    src={pixelEggImage.src} 
+                    src={typeof pixelEggImage === 'string' ? pixelEggImage : (pixelEggImage as any).src} 
                     alt="Pixel Egg" 
                     className="w-full h-full object-contain scale-125"
                     style={{ imageRendering: 'pixelated' }}
@@ -1410,26 +1392,18 @@ function IntroScene({ account, isPending, refetch }: any) {
       </motion.div>
     );
   }
-
-  // 2. LOGIKA BARU: Jika sudah connect TAPI belum menetas -> Jalankan Hatching Scene
   if (account && !hatchComplete) {
      return <HatchingScene onComplete={() => setHatchComplete(true)} />;
   }
-
-  // 3. Loading State saat cek Pet (Hanya muncul kalau data pet sedang diambil di background)
   if (isPending && !showConfirm) return (
       <div className="flex flex-col items-center justify-center h-full bg-black/80 backdrop-blur-sm absolute inset-0 z-50">
           <div className="w-16 h-16 border-4 border-[#feca57] border-t-transparent rounded-full animate-spin mb-4"></div>
       </div>
   );
-
-  // 4. Form Input Nama (PARTNER BARU) - Ini yang akan muncul SETELAH animasi menetas
   if (!showConfirm) {
     return (
         <div className="flex items-center justify-center h-full w-full p-4">
             <PixelCard className="w-full max-w-sm flex flex-col gap-6 items-center z-20">
-                
-                {/* Logo Monster (Hasil Hatching) */}
                 <div>
                      <div className="absolute inset-0 bg-blue-500/20 animate-pulse"></div>
                      <svg width="80" height="80" viewBox="0 0 12 12" shapeRendering="crispEdges" className="animate-bounce">
@@ -1450,7 +1424,7 @@ function IntroScene({ account, isPending, refetch }: any) {
 
                 <div className="w-full">
                     <input
-                        autoFocus
+                        autoFocus={true}
                         value={petName}
                         onChange={(e) => setPetName(e.target.value.toUpperCase())}
                         onKeyDown={(e) => e.key === 'Enter' && petName && setShowConfirm(true)}
@@ -1465,7 +1439,7 @@ function IntroScene({ account, isPending, refetch }: any) {
                     disabled={!petName}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-full bg-[#2ecc71] hover:bg-[#27ae60] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-xs shadow-[4px_4px_0_black] active:shadow-none active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed [text-shadow:_1px_1px_0_#000]"
+                    className="w-full bg-[#2ecc71] hover:bg-[#27ae60] text-white py-4 border-4 border-black font-['Press_Start_2P'] text-xs shadow-[4px_4px_0_black] active:shadow-none active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed [text-shadow:_1px_1px_0_#000] relative z-[100]"
                 >
                     LANJUT
                 </motion.button>
@@ -1473,8 +1447,7 @@ function IntroScene({ account, isPending, refetch }: any) {
         </div>
     );
   }
-
-  // 5. Modal Konfirmasi (Tetap sama)
+  
   return (
     <motion.div 
         initial={{ opacity: 0 }} 

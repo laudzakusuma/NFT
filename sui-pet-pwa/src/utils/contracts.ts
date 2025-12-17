@@ -1,5 +1,5 @@
-export const PACKAGE_ID = "0xa9e4cdb2e367b3fb6abbe4d0dcb42b768f2387426f12c5c1d4c6623305d9098e"; 
-export const SHOP_ID = "0x030a6840d2d07b74d34dd2e86d2a13c912279eb68a4c8eb46252ddff31997186"; 
+export const PACKAGE_ID = "0xe152a6525e07d0aeda24a865ba4c35d3c7646a5c62008929a5bb28c03f1ce7b9"; 
+export const SHOP_ID = "0xc440c54febfa23d390190fae28b16319b561b0d5885c72a7c70ca92d00b97f81"; 
 export const PET_TYPE = `${PACKAGE_ID}::core::Pet`;
 export const FOOD_TYPE = `${PACKAGE_ID}::core::Food`;
 
