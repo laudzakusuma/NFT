@@ -4,7 +4,8 @@ module sui_pet::shop {
     use sui::balance::{Self, Balance};
     use sui_pet::core::{Self}; 
 
-    const FOOD_PRICE: u64 = 100_000_000; 
+    const FOOD_PRICE: u64 = 100_000_000;
+    const REVIVE_PRICE: u64 = 500_000_000;
     const E_PAYMENT_NOT_ENOUGH: u64 = 0;
 
     public struct Shop has key {
@@ -35,6 +36,14 @@ module sui_pet::shop {
 
         let food_item = core::mint_food(50, ctx);
         transfer::public_transfer(food_item, ctx.sender());
+    }
+
+    entry fun buy_revive(shop: &mut Shop, payment: &mut Coin<SUI>, ctx: &mut TxContext) {
+        assert!(coin::value(payment) >= REVIVE_PRICE, E_PAYMENT_NOT_ENOUGH);
+        let paid = coin::split(payment, REVIVE_PRICE, ctx);
+        balance::join(&mut shop.balance, coin::into_balance(paid));
+        let item = core::mint_revive(ctx);
+        transfer::public_transfer(item, ctx.sender());
     }
 
     entry fun withdraw(shop: &mut Shop, _cap: &ShopOwnerCap, ctx: &mut TxContext) {

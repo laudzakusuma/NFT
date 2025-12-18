@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import { createHash } from 'crypto';
 
 const SECRET_KEY = process.env.ADMIN_SECRET_KEY;
 
@@ -45,23 +46,39 @@ export async function POST(req: Request) {
             const dist = calculateDistance(last.lat, last.lng, lat, lng);
             const timeDiff = (now - last.time) / 1000;
             
-            if (timeDiff > 0 && (dist / timeDiff) > 30) { 
+            if (timeDiff > 0 && (dist / timeDiff) > 50) { 
                 return NextResponse.json({ error: "Anda bergerak terlalu cepat! (Spoofing terdeteksi)" }, { status: 400 });
             }
         }
-        
         userTracking.set(address, { lat, lng, time: now });
-        const rarity = (Math.floor(lat * 10000) % 2 !== 0) ? 2 : 1; 
-        const messageData = new TextEncoder().encode(address); 
+
+        const locationString = `${lat.toFixed(4)},${lng.toFixed(4)}`; 
+        const hash = createHash('sha256').update(locationString).digest('hex');
+        const hashVal = parseInt(hash.substring(0, 4), 16);
+        
+        let rarity = 1;
+        if (hashVal % 100 < 5) { 
+            rarity = 3;
+        } else if (hashVal % 100 < 25) { 
+            rarity = 2;
+        }
+
+        const elementVal = parseInt(hash.substring(8, 10), 16);
+        const element = (elementVal % 3) + 1;
+
+        const addressBytes = new TextEncoder().encode(address);
+        const messageData = new Uint8Array(addressBytes.length + 2);
+        messageData.set(addressBytes);
+        messageData.set([rarity], addressBytes.length);
+
         const signature = await adminKeypair.sign(messageData);
-        const publicKeyBytes = adminKeypair.getPublicKey().toRawBytes();
-        const publicKeyHex = Buffer.from(publicKeyBytes).toString('hex');
 
         return NextResponse.json({
             signature: Array.from(signature),
             msg: Array.from(messageData), 
             rarity,
-            debug_pubkey: publicKeyHex
+            element,
+            debug_info: { rarity, element }
         });
 
     } catch (e: any) {
